@@ -64,9 +64,9 @@ local WHITELIST = {
         UserId = 1758483,
         HWID   = "007CE530-4224-471C-AB90-87C9B57082F9"
     },
-    ["1131441655854137393"] = {
-        UserId = 111111111,
-        HWID   = "HWID-EXAMPLE-1"
+    ["1074079621525553294"] = {
+        UserId = 3487155537,
+        HWID   = ""
     },
     ["1212902997491978245"] = {
         UserId = 222222222,
@@ -1095,7 +1095,7 @@ local function InitSnowHub()
     end
 
     ----------------------------------------------------
-    -- JUMP VECTOR (SMOOTH PULL TO FOOTBALL)
+    -- JUMP VECTOR
     ----------------------------------------------------
     local function applyJumpVector()
         if not (masterStates[4] and featureStates[4]) then return end
@@ -1344,128 +1344,130 @@ local function InitSnowHub()
         end
     end)
 
-    ----------------------------------------------------
-    -- HEAD BOOST
-    ----------------------------------------------------
-    local function feetOnHead(myHRP, theirHead)
-        local myFeetY = myHRP.Position.Y - (myHRP.Size.Y / 2)
-        local headTopY = theirHead.Position.Y + (theirHead.Size.Y / 2)
-        local dy = myFeetY - headTopY
+   ----------------------------------------------------
+-- HEAD BOOST
+----------------------------------------------------
+local function feetOnHead(myHRP, theirHead)
+    local myFeetY = myHRP.Position.Y - (myHRP.Size.Y / 2)
+    local headTopY = theirHead.Position.Y + (theirHead.Size.Y / 2)
+    local dy = myFeetY - headTopY
 
-        if dy < -0.5 or dy > 2 then
-            return false
-        end
-
-        local dx = math.abs(myHRP.Position.X - theirHead.Position.X)
-        local dz = math.abs(myHRP.Position.Z - theirHead.Position.Z)
-
-        local halfX = theirHead.Size.X / 2 + 0.5
-        local halfZ = theirHead.Size.Z / 2 + 0.5
-
-        return dx <= halfX and dz <= halfZ
+    if dy < -0.5 or dy > 2 then
+        return false
     end
 
-    local function doBoost(rootPart)
-        onCooldown = true
-        cdRemaining = COOLDOWN_TIME
+    local dx = math.abs(myHRP.Position.X - theirHead.Position.X)
+    local dz = math.abs(myHRP.Position.Z - theirHead.Position.Z)
 
-        local velocity = rootPart.AssemblyLinearVelocity
-        local fallSpeed = math.max(0, -velocity.Y)
+    local halfX = theirHead.Size.X / 2 + 0.5
+    local halfZ = theirHead.Size.Z / 2 + 0.5
 
-        local bouncePower = (BOOST_POWER * 1.40) + math.clamp(fallSpeed * 0.9, 0, 87)
+    return dx <= halfX and dz <= halfZ
+end
 
-        local attachment = Instance.new("Attachment")
-        attachment.Parent = rootPart
+local function doBoost(rootPart)
+    onCooldown = true
+    cdRemaining = COOLDOWN_TIME
 
-        local lv = Instance.new("LinearVelocity")
-        lv.Attachment0 = attachment
-        lv.RelativeTo = Enum.ActuatorRelativeTo.World
-        lv.MaxForce = math.huge
+    local velocity = rootPart.AssemblyLinearVelocity
+    local fallSpeed = math.max(0, -velocity.Y)
 
-        lv.VectorVelocity = Vector3.new(
-            velocity.X * 0.65,
-            bouncePower,
-            velocity.Z * 0.65
-        )
+    -- REALISTIC HIGH BOOST
+    local bouncePower = (BOOST_POWER * 1.35) + math.clamp(fallSpeed * 0.9, 0, 85)
 
-        lv.Parent = rootPart
+    local attachment = Instance.new("Attachment")
+    attachment.Parent = rootPart
 
-        task.wait(0.06)
+    local lv = Instance.new("LinearVelocity")
+    lv.Attachment0 = attachment
+    lv.RelativeTo = Enum.ActuatorRelativeTo.World
+    lv.MaxForce = math.huge
 
-        lv:Destroy()
-        attachment:Destroy()
+    -- Keep realistic horizontal momentum
+    lv.VectorVelocity = Vector3.new(
+        velocity.X * 0.65,
+        bouncePower,
+        velocity.Z * 0.65
+    )
 
-        task.delay(COOLDOWN_TIME, function()
-            onCooldown = false
-        end)
+    lv.Parent = rootPart
+
+    task.wait(0.06)
+
+    lv:Destroy()
+    attachment:Destroy()
+
+    task.delay(COOLDOWN_TIME, function()
+        onCooldown = false
+    end)
+end
+
+local playerJumpStates = {}
+local playerJumpTimers = {}
+
+RunService.Heartbeat:Connect(function(dt)
+    if cdRemaining > 0 then
+        cdRemaining = math.max(0, cdRemaining - dt)
     end
 
-    local playerJumpStates = {}
-    local playerJumpTimers = {}
+    if not (masterStates[8] and featureStates[8]) or onCooldown then
+        return
+    end
 
-    RunService.Heartbeat:Connect(function(dt)
-        if cdRemaining > 0 then
-            cdRemaining = math.max(0, cdRemaining - dt)
+    BOOST_POWER = getBoostPower()
+    COOLDOWN_TIME = getBoostCD()
+
+    local myChar = character
+    if not myChar then
+        return
+    end
+
+    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+    if not myHRP then
+        return
+    end
+
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr == player then
+            continue
         end
 
-        if not (masterStates[8] and featureStates[8]) or onCooldown then
-            return
+        local char = plr.Character
+        if not char then
+            continue
         end
 
-        BOOST_POWER = getBoostPower()
-        COOLDOWN_TIME = getBoostCD()
+        local hum = char:FindFirstChildOfClass("Humanoid")
+        local head = char:FindFirstChild("Head")
 
-        local myChar = character
-        if not myChar then
-            return
+        if not hum or not head then
+            continue
         end
 
-        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-        if not myHRP then
-            return
+        local wasJumping = playerJumpStates[plr] or false
+        local isJumping = hum.FloorMaterial == Enum.Material.Air
+
+        if isJumping and not wasJumping then
+            playerJumpTimers[plr] = 0.15
         end
 
-        for _, plr in ipairs(Players:GetPlayers()) do
-            if plr == player then
-                continue
+        if playerJumpTimers[plr] and playerJumpTimers[plr] > 0 then
+            playerJumpTimers[plr] = playerJumpTimers[plr] - dt
+
+            if feetOnHead(myHRP, head) then
+                playerJumpTimers[plr] = 0
+                doBoost(myHRP)
             end
-
-            local char = plr.Character
-            if not char then
-                continue
-            end
-
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            local head = char:FindFirstChild("Head")
-
-            if not hum or not head then
-                continue
-            end
-
-            local wasJumping = playerJumpStates[plr] or false
-            local isJumping = hum.FloorMaterial == Enum.Material.Air
-
-            if isJumping and not wasJumping then
-                playerJumpTimers[plr] = 0.15
-            end
-
-            if playerJumpTimers[plr] and playerJumpTimers[plr] > 0 then
-                playerJumpTimers[plr] = playerJumpTimers[plr] - dt
-
-                if feetOnHead(myHRP, head) then
-                    playerJumpTimers[plr] = 0
-                    doBoost(myHRP)
-                end
-            end
-
-            playerJumpStates[plr] = isJumping
         end
-    end)
 
-    Players.PlayerRemoving:Connect(function(plr)
-        playerJumpStates[plr] = nil
-        playerJumpTimers[plr] = nil
-    end)
+        playerJumpStates[plr] = isJumping
+    end
+end)
+
+Players.PlayerRemoving:Connect(function(plr)
+    playerJumpStates[plr] = nil
+    playerJumpTimers[plr] = nil
+end)
 
     ----------------------------------------------------
     -- JUMP ASSIST
