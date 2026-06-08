@@ -255,23 +255,22 @@ local function InitSnowHub()
     local sjc_smoothing = 5
 
     ----------------------------------------------------
-    -- KEYBINDS
+    -- ONE-KEYBIND SYSTEM
     ----------------------------------------------------
-
     local Keybinds = {
-        WalkSpeed    = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        HipHeight    = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        Gravity      = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        JumpVector   = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        Hitbox       = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        SideTech     = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        HeadLock     = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        HeadBoost    = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        InfiniteJump = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        JumpAssist   = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        SmoothJump   = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        ToggleGUI    = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
-        Console      = {Keyboard = Enum.KeyCode.Backquote, Controller = Enum.KeyCode.ButtonB},
+        WalkSpeed    = Enum.KeyCode.Backquote,
+        HipHeight    = Enum.KeyCode.Backquote,
+        Gravity      = Enum.KeyCode.Backquote,
+        JumpVector   = Enum.KeyCode.Backquote,
+        Hitbox       = Enum.KeyCode.Backquote,
+        SideTech     = Enum.KeyCode.Backquote,
+        HeadLock     = Enum.KeyCode.Backquote,
+        HeadBoost    = Enum.KeyCode.Backquote,
+        InfiniteJump = Enum.KeyCode.Backquote,
+        JumpAssist   = Enum.KeyCode.Backquote,
+        SmoothJump   = Enum.KeyCode.Backquote,
+        ToggleGUI    = Enum.KeyCode.Backquote,
+        Console      = Enum.KeyCode.Backquote,
     }
 
     ----------------------------------------------------
@@ -841,7 +840,7 @@ local function InitSnowHub()
     local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,1.7,1.5,advY); advY += 60
 
     ----------------------------------------------------
-    -- KEYBINDS PAGE
+    -- KEYBINDS PAGE 
     ----------------------------------------------------
 
     local keysPage = pages["KEYBINDS"]
@@ -871,7 +870,7 @@ local function InitSnowHub()
 
     local waitingForBind = nil
 
-    local function makeBindRow(name,featureKey)
+    local function makeBindRow(name, featureKey)
         local row = Instance.new("Frame")
         row.Size = UDim2.new(1,0,0,22)
         row.BackgroundTransparency = 1
@@ -888,39 +887,21 @@ local function InitSnowHub()
         lbl.Parent = row
 
         local kbBtn = Instance.new("TextButton")
-        kbBtn.Size = UDim2.new(0,80,0,20)
-        kbBtn.Position = UDim2.new(0.5,0,0,0)
+        kbBtn.Size = UDim2.new(0,120,0,20)
+        kbBtn.Position = UDim2.new(0.55,0,0,0)
         kbBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
         kbBtn.BorderSizePixel = 0
-        kbBtn.Text = Keybinds[featureKey].Keyboard.Name
+        kbBtn.Text = (Keybinds[featureKey] and Keybinds[featureKey].Name) or "UNSET"
         kbBtn.Font = Enum.Font.GothamBold
         kbBtn.TextSize = 10
         kbBtn.TextColor3 = Color3.fromRGB(220,220,230)
         kbBtn.Parent = row
         Instance.new("UICorner", kbBtn).CornerRadius = UDim.new(0,8)
 
-        local ctrlBtn = Instance.new("TextButton")
-        ctrlBtn.Size = UDim2.new(0,80,0,20)
-        ctrlBtn.Position = UDim2.new(0.75,0,0,0)
-        ctrlBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
-        ctrlBtn.BorderSizePixel = 0
-        ctrlBtn.Text = Keybinds[featureKey].Controller.Name
-        ctrlBtn.Font = Enum.Font.GothamBold
-        ctrlBtn.TextSize = 10
-        ctrlBtn.TextColor3 = Color3.fromRGB(220,220,230)
-        ctrlBtn.Parent = row
-        Instance.new("UICorner", ctrlBtn).CornerRadius = UDim.new(0,8)
-
         kbBtn.MouseButton1Click:Connect(function()
-            waitingForBind = {featureKey,"Keyboard",kbBtn}
+            waitingForBind = {featureKey, kbBtn}
             kbBtn.Text = "PRESS..."
             kbBtn.BackgroundColor3 = Color3.fromRGB(200,160,60)
-        end)
-
-        ctrlBtn.MouseButton1Click:Connect(function()
-            waitingForBind = {featureKey,"Controller",ctrlBtn}
-            ctrlBtn.Text = "PRESS..."
-            ctrlBtn.BackgroundColor3 = Color3.fromRGB(200,160,60)
         end)
     end
 
@@ -1114,7 +1095,7 @@ local function InitSnowHub()
     end
 
     ----------------------------------------------------
-    -- JUMP VECTOR (SMOOTH PULL)
+    -- JUMP VECTOR (SMOOTH PULL TO FOOTBALL)
     ----------------------------------------------------
     local function applyJumpVector()
         if not (masterStates[4] and featureStates[4]) then return end
@@ -1304,7 +1285,7 @@ local function InitSnowHub()
     end
 
     ----------------------------------------------------
-    -- Sticky head physics (HEAD LOCK / PULL / STICK)
+    -- Sticky head physics 
     ----------------------------------------------------
     RunService.RenderStepped:Connect(function()
         if not (masterStates[7] and featureStates[7]) then return end
@@ -1524,12 +1505,12 @@ local function InitSnowHub()
     end)
 
     ----------------------------------------------------
-    -- SAFE HEAD LOCK PLACEHOLDER (F9 CLEAN)
+    -- SAFE HEAD LOCK PLACEHOLDER 
     ----------------------------------------------------
     if not _G.__SnowApplyHeadLockDefined then
         _G.__SnowApplyHeadLockDefined = true
         function applyHeadLock(dt)
-            -- no-op placeholder to avoid nil errors if not implemented
+            -- placeholder to avoid nil errors
         end
     end
 
@@ -1567,26 +1548,34 @@ local function InitSnowHub()
     end)
 
     ----------------------------------------------------
-    -- INPUT HANDLING
+    -- INPUT HANDLING (ONE-KEYBIND SYSTEM)
     ----------------------------------------------------
 
     UserInputService.InputBegan:Connect(function(input,gpe)
         if gpe then return end
 
         if waitingForBind then
-            local featureKey,kind,btn = waitingForBind[1],waitingForBind[2],waitingForBind[3]
+            local featureKey, btn = waitingForBind[1], waitingForBind[2]
+
+            local newKey
             if input.KeyCode ~= Enum.KeyCode.Unknown then
-                Keybinds[featureKey][kind] = input.KeyCode
-                btn.Text = input.KeyCode.Name
-                btn.BackgroundColor3 = Color3.fromRGB(40,40,55)
-                waitingForBind = nil
-                return
+                newKey = input.KeyCode
+            else
+                newKey = input.UserInputType
             end
+
+            Keybinds[featureKey] = newKey
+            btn.Text = newKey.Name
+            btn.BackgroundColor3 = Color3.fromRGB(40,40,55)
+            waitingForBind = nil
+            return
         end
 
-        local key = input.KeyCode
+        local keyCode = input.KeyCode
+        local keyForBind = (keyCode ~= Enum.KeyCode.Unknown) and keyCode or input.UserInputType
 
-        if (key == Enum.KeyCode.Space or key == Enum.KeyCode.ButtonA)
+        -- Infinite jump (space / ButtonA)
+        if (keyCode == Enum.KeyCode.Space or keyCode == Enum.KeyCode.ButtonA)
             and masterStates[9] and featureStates[9] then
 
             if humanoid and root then
@@ -1598,8 +1587,7 @@ local function InitSnowHub()
         end
 
         local function checkFeature(featureKey,index)
-            local binds = Keybinds[featureKey]
-            if key == binds.Keyboard or key == binds.Controller then
+            if keyForBind == Keybinds[featureKey] then
 
                 if featureKey == "ToggleGUI" then
                     panel.Visible = not panel.Visible
@@ -1643,6 +1631,7 @@ local function InitSnowHub()
         checkFeature("JumpAssist",10)
         checkFeature("SmoothJump",11)
         checkFeature("ToggleGUI",nil)
+        checkFeature("Console",nil)
     end)
 end
 
@@ -1889,7 +1878,7 @@ uBtn.MouseButton1Click:Connect(function()
 
     local currentHWID = getHWID()
     if entry.HWID ~= currentHWID then
-        return deny("Device not linked to this Discord ID.")
+        return deny("hwid not linked to this Discord ID.")
     end
 
     if isBlacklisted(discord, localPlayer.UserId, currentHWID) then
