@@ -81,9 +81,9 @@ local WHITELIST = {
 local OWNER_DISCORD = "1345621147223461890"
 
 local BLACKLIST = {
-    [""] = {
-        UserId = ,
-        HWID   = ""
+    ["999999999999999999"] = {
+        UserId = 123456789,
+        HWID   = "EXAMPLE-HWID-1"
     },
     ["999999999999999999"] = {
         UserId = 123456789,
@@ -988,7 +988,7 @@ local function InitSnowHub()
     local advPage = pages["ADVANCED"]
     local advY = 0
 
-    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,40,16,advY); advY += 60
+    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,110,16,advY); advY += 60
     local getHipHeight, setHipHeight = createSlider(advPage,"HIP HEIGHT",1,5,originalHipHeight,advY); advY += 60
     local getGravity, setGravity = createSlider(advPage,"GRAVITY",170,200,defaultGravity,advY); advY += 60
 
@@ -1463,6 +1463,66 @@ end
         end
         return nearest
     end
+
+    ----------------------------------------------------
+    -- HEADLOCK
+    ----------------------------------------------------
+    RunService.RenderStepped:Connect(function()
+        if not (masterStates[7] and featureStates[7]) then return end
+        if not humanoid or not root then return end
+
+        local target = closestPlayer()
+        if not target or not target.Character then return end
+
+        local head = target.Character:FindFirstChild("Head")
+        if not head then return end
+
+        pullStrength = getPullStrength()
+        stickStrength = getStickStrength()
+
+        if humanoid.FloorMaterial == Enum.Material.Air then
+            local headPos = head.Position + Vector3.new(0,1.6,0)
+            local offset = headPos - root.Position
+            local dist = offset.Magnitude
+            local vel = root.AssemblyLinearVelocity
+
+            if dist > 2.5 then
+                local multiplier = pullStrength * 18
+                local desired = offset.Unit * multiplier
+                root.AssemblyLinearVelocity = Vector3.new(
+                    vel.X + (desired.X - vel.X) * 0.25,
+                    vel.Y,
+                    vel.Z + (desired.Z - vel.Z) * 0.25
+                )
+            end
+
+            if dist <= 3 then
+                local centerDir = (headPos - root.Position)
+                local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
+                if horizontal.Magnitude > 0 then
+                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 5)
+                end
+            end
+
+            if dist <= 2 then
+                local boostOffset = headPos - root.Position
+                root.AssemblyLinearVelocity = Vector3.new(
+                    boostOffset.X * (stickStrength * 5),
+                    root.AssemblyLinearVelocity.Y,
+                    boostOffset.Z * (stickStrength * 5)
+                )
+            end
+
+            if dist <= 1.2 then
+                local lock = headPos - root.Position
+                root.AssemblyLinearVelocity = Vector3.new(
+                    lock.X * (stickStrength * 6),
+                    root.AssemblyLinearVelocity.Y,
+                    lock.Z * (stickStrength * 6)
+                )
+            end
+        end
+    end)
 
     ----------------------------------------------------
     -- HEAD BOOST
