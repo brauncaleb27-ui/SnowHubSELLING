@@ -144,6 +144,7 @@ local function InitSnowHub()
     local Workspace = game:GetService("Workspace")
 
     local player = Players.LocalPlayer or Players.PlayerAdded:Wait()
+    local LocalPlayer = player
 
     local function getCharacter()
         local char = player.Character or player.CharacterAdded:Wait()
@@ -176,51 +177,8 @@ local function InitSnowHub()
     local originalWalkSpeed = humanoid.WalkSpeed
 
     ----------------------------------------------------
-    -- SLIDER/TOGGLE
-    ----------------------------------------------------
-    local SLIDER_STEP = 0.1
-
-    -- 1: Walk Speed
-    -- 2: Hip Height
-    -- 3: Gravity
-    -- 4: Jump Vector
-    -- 5: Hitbox
-    -- 6: Side Tech
-    -- 7: Head Lock
-    -- 8: Head Boost
-    -- 9: Infinite Jump
-    -- 10: Jump Assist
-    -- 11: Smooth Jump
-    local toggleStates = {false,false,false,false,false,false,false,false,false,false,false}
-
-    local masterStates = {
-        [1]=false,[2]=false,[3]=false,[4]=false,[5]=false,
-        [6]=false,[7]=false,[8]=false,[9]=false,[10]=false,[11]=false
-    }
-
-    local featureStates = {
-        false,false,false,false,false,
-        false,false,false,false,false,false
-    }
-
-    local toggleUpdateCallbacks = {}
-
-    local function forceFeatureOff(index)
-        featureStates[index] = false
-        toggleStates[index] = false
-        if toggleUpdateCallbacks[index] then
-            toggleUpdateCallbacks[index]()
-        end
-    end
-
-    local function canToggleFeature(index)
-        return masterStates[index] == true
-    end
-
-    ----------------------------------------------------
     -- PARAMETERS
     ----------------------------------------------------
-
     local BallName = "Football"
 
     local JPV_Active = false
@@ -270,7 +228,6 @@ local function InitSnowHub()
         JumpAssist   = Enum.KeyCode.Backquote,
         SmoothJump   = Enum.KeyCode.Backquote,
         ToggleGUI    = Enum.KeyCode.Backquote,
-        Console      = Enum.KeyCode.Backquote,
     }
 
     ----------------------------------------------------
@@ -379,7 +336,7 @@ local function InitSnowHub()
     tabLayout.HorizontalAlignment = Enum.HorizontalAlignment.Left
     tabLayout.Parent = tabBar
 
-    local tabs = {"MAIN","ADVANCED","KEYBINDS","CONSOLE","CREATOR"}
+    local tabs = {"MAIN","ADVANCED","KEYBINDS","CONSOLE","CREATOR","ITEMS","EMOTES"}
     local pages = {}
     local currentTab = "MAIN"
 
@@ -437,6 +394,62 @@ local function InitSnowHub()
     setTab("MAIN")
 
     ----------------------------------------------------
+    -- SEARCH REGISTRY
+    ----------------------------------------------------
+    local SearchRegistry = {}
+
+    local function registerSearch(name, tabName, uiInstance)
+        if not (name and tabName and uiInstance) then return end
+        table.insert(SearchRegistry, {
+            name = name,
+            tab = tabName,
+            instance = uiInstance
+        })
+    end
+
+    local function highlightInstance(inst)
+        if not inst or not inst.Parent then return end
+        local stroke = Instance.new("UIStroke")
+        stroke.Color = Color3.fromRGB(200,50,50)
+        stroke.Thickness = 2
+        stroke.Transparency = 0
+        stroke.Parent = inst
+
+        task.spawn(function()
+            local t = 0
+            local duration = 0.6
+            while t < duration and stroke.Parent do
+                t += task.wait()
+                stroke.Transparency = t / duration
+            end
+            if stroke.Parent then
+                stroke:Destroy()
+            end
+        end)
+    end
+
+    local function scrollToInstance(tabName, inst)
+        local page = pages[tabName]
+        if not (page and inst and inst:IsDescendantOf(page)) then return end
+        local absY = inst.AbsolutePosition.Y
+        local pageY = page.AbsolutePosition.Y
+        local offset = absY - pageY
+        page.CanvasPosition = Vector2.new(0, math.max(offset - 40, 0))
+    end
+
+    local function focusSearchResult(entry)
+        if not entry then return end
+        panel.Visible = true
+        setTab(entry.tab)
+        task.delay(0.05, function()
+            if entry.instance and entry.instance.Parent then
+                scrollToInstance(entry.tab, entry.instance)
+                highlightInstance(entry.instance)
+            end
+        end)
+    end
+
+    ----------------------------------------------------
     -- MAIN PAGE
     ----------------------------------------------------
 
@@ -453,6 +466,7 @@ local function InitSnowHub()
     statusHeader.Parent = mainPage
     local statusHeaderPad = Instance.new("UIPadding", statusHeader)
     statusHeaderPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Status", "MAIN", statusHeader)
 
     local statusRow = Instance.new("Frame")
     statusRow.Size = UDim2.new(1,0,0,20)
@@ -491,6 +505,7 @@ local function InitSnowHub()
     fpsLabel.Parent = mainPage
     local fpsPad = Instance.new("UIPadding", fpsLabel)
     fpsPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("FPS", "MAIN", fpsLabel)
 
     local avgFPSLabel = Instance.new("TextLabel")
     avgFPSLabel.Size = UDim2.new(1,0,0,18)
@@ -529,6 +544,35 @@ local function InitSnowHub()
             lastTime = now
         end
     end)
+
+    local toggleStates = {}
+    for i = 1, 11 do
+        toggleStates[i] = false
+    end
+
+    local masterStates = {}
+    for i = 1, 11 do
+        masterStates[i] = false
+    end
+
+    local featureStates = {}
+    for i = 1, 11 do
+        featureStates[i] = false
+    end
+
+    local toggleUpdateCallbacks = {}
+
+    local function forceFeatureOff(index)
+        featureStates[index] = false
+        toggleStates[index] = false
+        if toggleUpdateCallbacks[index] then
+            toggleUpdateCallbacks[index]()
+        end
+    end
+
+    local function canToggleFeature(index)
+        return masterStates[index] == true
+    end
 
     local function updateSystemStatus()
         local anyOn = false
@@ -636,7 +680,7 @@ local function InitSnowHub()
             end
             update()
             updateSystemStatus()
-            
+
             SendLog(string.format(
                 "[Feature Toggle]\n%s: %s\nUser: %s\nTime: %s",
                 label,
@@ -665,6 +709,8 @@ local function InitSnowHub()
         update()
         toggleY += 40
         toggleUpdateCallbacks[index] = update
+
+        registerSearch(label, "MAIN", container)
     end
 
     createToggleSwitch(mainPage,"WALK SPEED",1)
@@ -679,9 +725,132 @@ local function InitSnowHub()
     createToggleSwitch(mainPage,"JUMP ASSIST",10)
     createToggleSwitch(mainPage,"SMOOTH JUMP",11)
 
-    -------------------------------------------------------------
+    ----------------------------------------------------
+    -- GLOBAL SEARCH BAR (MAIN TAB)
+    ----------------------------------------------------
+
+    local searchContainer = Instance.new("Frame")
+    searchContainer.Size = UDim2.new(1, -12, 0, 40)
+    searchContainer.Position = UDim2.new(0, 6, 0, toggleY + 10)
+    searchContainer.BackgroundTransparency = 1
+    searchContainer.Parent = mainPage
+
+    local fakeSearch = Instance.new("TextButton")
+    fakeSearch.Size = UDim2.new(1, 0, 0, 32)
+    fakeSearch.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    fakeSearch.BorderSizePixel = 0
+    fakeSearch.Text = "Search items, emotes, features..."
+    fakeSearch.TextColor3 = Color3.fromRGB(140, 140, 160)
+    fakeSearch.Font = Enum.Font.Gotham
+    fakeSearch.TextSize = 12
+    fakeSearch.Parent = searchContainer
+    Instance.new("UICorner", fakeSearch).CornerRadius = UDim.new(0, 8)
+
+    local realSearch = Instance.new("TextBox")
+    realSearch.Size = UDim2.new(1, 0, 0, 32)
+    realSearch.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+    realSearch.BorderSizePixel = 0
+    realSearch.Text = ""
+    realSearch.PlaceholderText = "Search items, emotes, features..."
+    realSearch.TextColor3 = Color3.fromRGB(220, 220, 230)
+    realSearch.PlaceholderColor3 = Color3.fromRGB(120, 120, 140)
+    realSearch.Font = Enum.Font.Gotham
+    realSearch.TextSize = 12
+    realSearch.Visible = false
+    realSearch.Parent = searchContainer
+    Instance.new("UICorner", realSearch).CornerRadius = UDim.new(0, 8)
+
+    local resultsFrame = Instance.new("Frame")
+    resultsFrame.Size = UDim2.new(1, 0, 0, 200)
+    resultsFrame.Position = UDim2.new(0, 0, 0, 40)
+    resultsFrame.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+    resultsFrame.BorderSizePixel = 0
+    resultsFrame.Visible = false
+    resultsFrame.Parent = searchContainer
+    Instance.new("UICorner", resultsFrame).CornerRadius = UDim.new(0, 8)
+
+    local resultsList = Instance.new("ScrollingFrame")
+    resultsList.Size = UDim2.new(1, 0, 1, 0)
+    resultsList.BackgroundTransparency = 1
+    resultsList.BorderSizePixel = 0
+    resultsList.ScrollBarThickness = 3
+    resultsList.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    resultsList.CanvasSize = UDim2.new(0, 0, 0, 0)
+    resultsList.Parent = resultsFrame
+
+    local resultsLayout = Instance.new("UIListLayout")
+    resultsLayout.FillDirection = Enum.FillDirection.Vertical
+    resultsLayout.Padding = UDim.new(0, 4)
+    resultsLayout.Parent = resultsList
+
+    fakeSearch.MouseButton1Click:Connect(function()
+        fakeSearch.Visible = false
+        realSearch.Visible = true
+        realSearch:CaptureFocus()
+    end)
+
+    local function clearResults()
+        for _, child in ipairs(resultsList:GetChildren()) do
+            if child:IsA("Frame") then child:Destroy() end
+        end
+    end
+
+    local function addResultRow(entry)
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1, -6, 0, 26)
+        row.BackgroundColor3 = Color3.fromRGB(30, 30, 40)
+        row.BorderSizePixel = 0
+        row.Parent = resultsList
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0, 6)
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(1, -10, 1, 0)
+        lbl.Position = UDim2.new(0, 6, 0, 0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = string.format("[%s] %s", entry.tab, entry.name)
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 11
+        lbl.TextColor3 = Color3.fromRGB(220, 220, 230)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = row
+
+        row.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                resultsFrame.Visible = false
+                realSearch.Text = ""
+                fakeSearch.Visible = true
+                realSearch.Visible = false
+                focusSearchResult(entry)
+            end
+        end)
+    end
+
+    realSearch:GetPropertyChangedSignal("Text"):Connect(function()
+        local query = realSearch.Text:lower()
+        clearResults()
+
+        if query == "" then
+            resultsFrame.Visible = false
+            return
+        end
+
+        resultsFrame.Visible = true
+
+        for _, entry in ipairs(SearchRegistry) do
+            if entry.name and entry.name:lower():find(query, 1, true) then
+                addResultRow(entry)
+            end
+        end
+    end)
+
+    ----------------------------------------------------
     -- SLIDER FACTORY + ADVANCED PAGE
-    -------------------------------------------------------------
+    ----------------------------------------------------
+
+    local advPage = pages["ADVANCED"]
+    local advY = 0
+
+    local SLIDER_STEP = 0.1
 
     local function createSlider(parent,label,min,max,default,startY)
         local container = Instance.new("Frame")
@@ -808,10 +977,13 @@ local function InitSnowHub()
 
         setValue(default)
 
+        registerSearch(label, "ADVANCED", container)
+
         return function()
             return currentValue
         end, setValue
     end
+
 
     local advPage = pages["ADVANCED"]
     local advY = 0
@@ -856,6 +1028,7 @@ local function InitSnowHub()
     kbLabel.Parent = keysPage
     local kbPad = Instance.new("UIPadding", kbLabel)
     kbPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Keybinds", "KEYBINDS", kbLabel)
 
     local kbList = Instance.new("Frame")
     kbList.Size = UDim2.new(1,-12,1,-26)
@@ -903,6 +1076,8 @@ local function InitSnowHub()
             kbBtn.Text = "PRESS..."
             kbBtn.BackgroundColor3 = Color3.fromRGB(200,160,60)
         end)
+
+        registerSearch(name .. " Keybind", "KEYBINDS", row)
     end
 
     makeBindRow("Walk Speed","WalkSpeed")
@@ -935,6 +1110,7 @@ local function InitSnowHub()
     consoleLabel.Parent = consolePage
     local consolePad = Instance.new("UIPadding", consoleLabel)
     consolePad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Script Injector", "CONSOLE", consoleLabel)
 
     local injectorBox = Instance.new("TextBox")
     injectorBox.Size = UDim2.new(1,-12,1,-56)
@@ -953,6 +1129,7 @@ local function InitSnowHub()
     injectorBox.BorderSizePixel = 0
     injectorBox.Parent = consolePage
     Instance.new("UICorner", injectorBox).CornerRadius = UDim.new(0,8)
+    registerSearch("Run Script Box", "CONSOLE", injectorBox)
 
     local injectorRun = Instance.new("TextButton")
     injectorRun.Size = UDim2.new(0,100,0,28)
@@ -965,6 +1142,7 @@ local function InitSnowHub()
     injectorRun.BorderSizePixel = 0
     injectorRun.Parent = consolePage
     Instance.new("UICorner", injectorRun).CornerRadius = UDim.new(0,8)
+    registerSearch("Run Script", "CONSOLE", injectorRun)
 
     injectorRun.MouseButton1Click:Connect(function()
         local code = injectorBox.Text
@@ -1000,6 +1178,7 @@ local function InitSnowHub()
     creatorLabel.Parent = creatorPage
     local creatorPad = Instance.new("UIPadding", creatorLabel)
     creatorPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Creator", "CREATOR", creatorLabel)
 
     local creatorInfo = Instance.new("TextLabel")
     creatorInfo.Size = UDim2.new(1,-12,0,60)
@@ -1012,6 +1191,7 @@ local function InitSnowHub()
     creatorInfo.TextColor3 = Color3.fromRGB(220,220,230)
     creatorInfo.Text = "Created by Hiro\nTikTok: @yohirooo\n\n"
     creatorInfo.Parent = creatorPage
+    registerSearch("TikTok: @yohirooo", "CREATOR", creatorInfo)
 
     ----------------------------------------------------
     -- DRAGGING MAIN PANEL
@@ -1046,62 +1226,62 @@ local function InitSnowHub()
         end
     end)
 
-    ----------------------------------------------------
-    -- HITBOX
-    ----------------------------------------------------
+----------------------------------------------------
+-- HITBOX
+----------------------------------------------------
 
-    local function createHitbox(char)
-        if not hitboxEnabled then return end
-        if char == character then return end
+local function createHitbox(char)
+    if not hitboxEnabled then return end
+    if char == character then return end
 
-        local head = char:FindFirstChild("Head")
-        if not head then return end
+    local torso = char:FindFirstChild("UpperTorso")
+    if not torso then return end
 
-        if hitboxes[char] then
-            hitboxes[char]:Destroy()
-        end
-
-        local box = Instance.new("Part")
-        box.Name = "HeadHitbox"
-        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-        box.Transparency = 1
-        box.CanCollide = true
-        box.Anchored = false
-        box.Massless = true
-        box.Parent = char
-
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = head
-        weld.Part1 = box
-        weld.Parent = box
-
-        box.Position = head.Position
-        hitboxes[char] = box
+    if hitboxes[char] then
+        hitboxes[char]:Destroy()
     end
 
-    local function refreshHitboxes()
-        for _, v in pairs(hitboxes) do
-            if v then v:Destroy() end
-        end
-        hitboxes = {}
+    local box = Instance.new("Part")
+    box.Name = "UpperTorsoHitbox"
+    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+    box.Transparency = 1
+    box.CanCollide = true
+    box.Anchored = false
+    box.Massless = true
+    box.Parent = char
 
-        if hitboxEnabled then
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character then
-                    createHitbox(plr.Character)
-                end
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = torso
+    weld.Part1 = box
+    weld.Parent = box
+
+    box.Position = torso.Position
+    hitboxes[char] = box
+end
+
+local function refreshHitboxes()
+    for _, v in pairs(hitboxes) do
+        if v then v:Destroy() end
+    end
+    hitboxes = {}
+
+    if hitboxEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                createHitbox(plr.Character)
             end
         end
     end
+end
 
     ----------------------------------------------------
     -- JUMP VECTOR
     ----------------------------------------------------
-    local function applyJumpVector()
+    local function applyJPV()
         if not (masterStates[4] and featureStates[4]) then return end
         if not root or not humanoid then return end
 
-        local ball = getNearestBall()
+        local ball = getNearestFootBall()
         if not ball then return end
 
         local ballPos = ball.Position
@@ -1285,7 +1465,7 @@ local function InitSnowHub()
     end
 
     ----------------------------------------------------
-    -- Sticky head physics 
+    -- HEADLOCK
     ----------------------------------------------------
     RunService.RenderStepped:Connect(function()
         if not (masterStates[7] and featureStates[7]) then return end
@@ -1344,130 +1524,128 @@ local function InitSnowHub()
         end
     end)
 
-   ----------------------------------------------------
--- HEAD BOOST
-----------------------------------------------------
-local function feetOnHead(myHRP, theirHead)
-    local myFeetY = myHRP.Position.Y - (myHRP.Size.Y / 2)
-    local headTopY = theirHead.Position.Y + (theirHead.Size.Y / 2)
-    local dy = myFeetY - headTopY
+    ----------------------------------------------------
+    -- HEAD BOOST
+    ----------------------------------------------------
+    local function feetOnHead(myHRP, theirHead)
+        local myFeetY = myHRP.Position.Y - (myHRP.Size.Y / 2)
+        local headTopY = theirHead.Position.Y + (theirHead.Size.Y / 2)
+        local dy = myFeetY - headTopY
 
-    if dy < -0.5 or dy > 2 then
-        return false
-    end
-
-    local dx = math.abs(myHRP.Position.X - theirHead.Position.X)
-    local dz = math.abs(myHRP.Position.Z - theirHead.Position.Z)
-
-    local halfX = theirHead.Size.X / 2 + 0.5
-    local halfZ = theirHead.Size.Z / 2 + 0.5
-
-    return dx <= halfX and dz <= halfZ
-end
-
-local function doBoost(rootPart)
-    onCooldown = true
-    cdRemaining = COOLDOWN_TIME
-
-    local velocity = rootPart.AssemblyLinearVelocity
-    local fallSpeed = math.max(0, -velocity.Y)
-
-    -- REALISTIC HIGH BOOST
-    local bouncePower = (BOOST_POWER * 1.35) + math.clamp(fallSpeed * 0.9, 0, 85)
-
-    local attachment = Instance.new("Attachment")
-    attachment.Parent = rootPart
-
-    local lv = Instance.new("LinearVelocity")
-    lv.Attachment0 = attachment
-    lv.RelativeTo = Enum.ActuatorRelativeTo.World
-    lv.MaxForce = math.huge
-
-    -- Keep realistic horizontal momentum
-    lv.VectorVelocity = Vector3.new(
-        velocity.X * 0.65,
-        bouncePower,
-        velocity.Z * 0.65
-    )
-
-    lv.Parent = rootPart
-
-    task.wait(0.06)
-
-    lv:Destroy()
-    attachment:Destroy()
-
-    task.delay(COOLDOWN_TIME, function()
-        onCooldown = false
-    end)
-end
-
-local playerJumpStates = {}
-local playerJumpTimers = {}
-
-RunService.Heartbeat:Connect(function(dt)
-    if cdRemaining > 0 then
-        cdRemaining = math.max(0, cdRemaining - dt)
-    end
-
-    if not (masterStates[8] and featureStates[8]) or onCooldown then
-        return
-    end
-
-    BOOST_POWER = getBoostPower()
-    COOLDOWN_TIME = getBoostCD()
-
-    local myChar = character
-    if not myChar then
-        return
-    end
-
-    local myHRP = myChar:FindFirstChild("HumanoidRootPart")
-    if not myHRP then
-        return
-    end
-
-    for _, plr in ipairs(Players:GetPlayers()) do
-        if plr == player then
-            continue
+        if dy < -0.5 or dy > 2 then
+            return false
         end
 
-        local char = plr.Character
-        if not char then
-            continue
+        local dx = math.abs(myHRP.Position.X - theirHead.Position.X)
+        local dz = math.abs(myHRP.Position.Z - theirHead.Position.Z)
+
+        local halfX = theirHead.Size.X / 2 + 0.5
+        local halfZ = theirHead.Size.Z / 2 + 0.5
+
+        return dx <= halfX and dz <= halfZ
+    end
+
+    local function doBoost(rootPart)
+        onCooldown = true
+        cdRemaining = COOLDOWN_TIME
+
+        local velocity = rootPart.AssemblyLinearVelocity
+        local fallSpeed = math.max(0, -velocity.Y)
+
+        local bouncePower = (BOOST_POWER * 1.35) + math.clamp(fallSpeed * 0.9, 0, 85)
+
+        local attachment = Instance.new("Attachment")
+        attachment.Parent = rootPart
+
+        local lv = Instance.new("LinearVelocity")
+        lv.Attachment0 = attachment
+        lv.RelativeTo = Enum.ActuatorRelativeTo.World
+        lv.MaxForce = math.huge
+
+        lv.VectorVelocity = Vector3.new(
+            velocity.X * 0.65,
+            bouncePower,
+            velocity.Z * 0.65
+        )
+
+        lv.Parent = rootPart
+
+        task.wait(0.06)
+
+        lv:Destroy()
+        attachment:Destroy()
+
+        task.delay(COOLDOWN_TIME, function()
+            onCooldown = false
+        end)
+    end
+
+    local playerJumpStates = {}
+    local playerJumpTimers = {}
+
+    RunService.Heartbeat:Connect(function(dt)
+        if cdRemaining > 0 then
+            cdRemaining = math.max(0, cdRemaining - dt)
         end
 
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        local head = char:FindFirstChild("Head")
-
-        if not hum or not head then
-            continue
+        if not (masterStates[8] and featureStates[8]) or onCooldown then
+            return
         end
 
-        local wasJumping = playerJumpStates[plr] or false
-        local isJumping = hum.FloorMaterial == Enum.Material.Air
+        BOOST_POWER = getBoostPower()
+        COOLDOWN_TIME = getBoostCD()
 
-        if isJumping and not wasJumping then
-            playerJumpTimers[plr] = 0.15
+        local myChar = character
+        if not myChar then
+            return
         end
 
-        if playerJumpTimers[plr] and playerJumpTimers[plr] > 0 then
-            playerJumpTimers[plr] = playerJumpTimers[plr] - dt
+        local myHRP = myChar:FindFirstChild("HumanoidRootPart")
+        if not myHRP then
+            return
+        end
 
-            if feetOnHead(myHRP, head) then
-                playerJumpTimers[plr] = 0
-                doBoost(myHRP)
+        for _, plr in ipairs(Players:GetPlayers()) do
+            if plr == player then
+                continue
             end
+
+            local char = plr.Character
+            if not char then
+                continue
+            end
+
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            local head = char:FindFirstChild("Head")
+
+            if not hum or not head then
+                continue
+            end
+
+            local wasJumping = playerJumpStates[plr] or false
+            local isJumping = hum.FloorMaterial == Enum.Material.Air
+
+            if isJumping and not wasJumping then
+                playerJumpTimers[plr] = 0.15
+            end
+
+            if playerJumpTimers[plr] and playerJumpTimers[plr] > 0 then
+                playerJumpTimers[plr] = playerJumpTimers[plr] - dt
+
+                if feetOnHead(myHRP, head) then
+                    playerJumpTimers[plr] = 0
+                    doBoost(myHRP)
+                end
+            end
+
+            playerJumpStates[plr] = isJumping
         end
+    end)
 
-        playerJumpStates[plr] = isJumping
-    end
-end)
-
-Players.PlayerRemoving:Connect(function(plr)
-    playerJumpStates[plr] = nil
-    playerJumpTimers[plr] = nil
-end)
+    Players.PlayerRemoving:Connect(function(plr)
+        playerJumpStates[plr] = nil
+        playerJumpTimers[plr] = nil
+    end)
 
     ----------------------------------------------------
     -- JUMP ASSIST
@@ -1507,50 +1685,360 @@ end)
     end)
 
     ----------------------------------------------------
-    -- SAFE HEAD LOCK PLACEHOLDER 
+    -- SAFE HEAD LOCK 
     ----------------------------------------------------
     if not _G.__SnowApplyHeadLockDefined then
         _G.__SnowApplyHeadLockDefined = true
         function applyHeadLock(dt)
-            -- placeholder to avoid nil errors
+            -- placeholder
         end
     end
 
     ----------------------------------------------------
-    -- MAIN LOOP
+    -- CLOTHING SYSTEM
     ----------------------------------------------------
-    RunService.RenderStepped:Connect(function(dt)
-        if not character or not humanoid or not root then
-            return
-        end
 
-        applyWalkSpeed()
-        applyHipHeight()
-        applyGravity()
-        applySideTech()
-        applyHeadLock(dt)
-        applySmoothJump(dt)
+    local equipped = {}
+    local origShirtTemplate, origPantsTemplate = nil, nil
 
-        if masterStates[4] and featureStates[4] then
-            applyJumpVector()
-        end
+    do
+        local char = LocalPlayer.Character
+        local s = char and char:FindFirstChildOfClass("Shirt")
+        local p = char and char:FindFirstChildOfClass("Pants")
+        if s then origShirtTemplate = s.ShirtTemplate end
+        if p then origPantsTemplate = p.PantsTemplate end
+    end
 
-        if masterStates[5] and featureStates[5] then
-            hitboxEnabled = true
-            local size = getHitboxSize()
-            hitboxSize = size
-            for _, part in pairs(hitboxes) do
-                if part and part.Parent then
-                    part.Size = Vector3.new(size, size, size)
+    local CLOTHING_ITEMS = {
+        ["King Pants"] = { type = "Pants", assetId = 10725550576     },
+        ["Black Bandana Shorts"] = { type = "Pants", assetId = 15020463274     },
+        ["Allstar Shorts"]       = { type = "Pants", assetId = 73939866847703  },
+        ["King Shirt"]           = { type = "Shirt", assetId = 6296265575      },
+        ["Black World Tour"]     = { type = "Shirt", assetId = 15335037852     },
+        ["Pink World Tour"]      = { type = "Shirt", assetId = 15334978300     },
+        ["White World Tour"]     = { type = "Shirt", assetId = 15334975460     },
+        ["Hooded Jean Jacket"]   = { type = "Shirt", assetId = 15334917844     },
+        ["Grey Flare"]           = { type = "Shirt", assetId = 15345367906     },
+        ["Black Flare"]          = { type = "Shirt", assetId = 15345348842     },
+        ["Red Flare"]            = { type = "Shirt", assetId = 15345347397     },
+        ["Acid Flare"]           = { type = "Shirt", assetId = 15345352095     },
+        ["Pastel Flare"]         = { type = "Shirt", assetId = 15345355082     },
+        ["Orange Flare"]         = { type = "Shirt", assetId = 15345357354     },
+        ["Allstar Shirt"]        = { type = "Shirt", assetId = 104603634169771 },
+    }
+
+    local function equipClothing(name)
+        pcall(function()
+            if equipped[name] then return end
+            local d = CLOTHING_ITEMS[name] if not d then return end
+            local char = LocalPlayer.Character if not char then return end
+            local idStr = tostring(d.assetId)
+            local applied, appliedParts = false, {}
+            local function tryApply(objects)
+                if not objects then return false end
+                local allItems = {}
+                for _, obj in pairs(objects) do
+                    table.insert(allItems, obj)
+                    pcall(function() for _, c in pairs(obj:GetDescendants()) do table.insert(allItems, c) end end)
+                end
+                for _, item in pairs(allItems) do
+                    if item:IsA("Shirt") and d.type == "Shirt" then
+                        local old = char:FindFirstChildOfClass("Shirt") if old then old:Destroy() end
+                        item.Parent = char table.insert(appliedParts, item) return true
+                    end
+                    if item:IsA("Pants") and d.type == "Pants" then
+                        local old = char:FindFirstChildOfClass("Pants") if old then old:Destroy() end
+                        item.Parent = char table.insert(appliedParts, item) return true
+                    end
+                end
+                return false
+            end
+            local ok, result = pcall(function() return game:GetObjects("rbxassetid://" .. idStr) end)
+            if ok and result and #result > 0 then applied = tryApply(result) end
+            if not applied then
+                local ok2, model = pcall(function() return game:GetService("InsertService"):LoadAsset(d.assetId) end)
+                if ok2 and model then
+                    applied = tryApply({model})
+                    if model and model.Parent then pcall(function() model:Destroy() end) end
                 end
             end
-        else
-            hitboxEnabled = false
+            if not applied then
+                if d.type == "Shirt" then
+                    local old = char:FindFirstChildOfClass("Shirt") if old then old:Destroy() end
+                    local s = Instance.new("Shirt") s.Name = name s.ShirtTemplate = "rbxassetid://" .. idStr s.Parent = char
+                    table.insert(appliedParts, s)
+                elseif d.type == "Pants" then
+                    local old = char:FindFirstChildOfClass("Pants") if old then old:Destroy() end
+                    local p = Instance.new("Pants") p.Name = name p.PantsTemplate = "rbxassetid://" .. idStr p.Parent = char
+                    table.insert(appliedParts, p)
+                end
+            end
+            if #appliedParts > 0 then equipped[name] = appliedParts end
+        end)
+    end
+
+    local function unequipItem(name)
+        pcall(function()
+            if not equipped[name] then return end
+            local parts = equipped[name]
+            local hadShirt, hadPants = false, false
+            for _, p in ipairs(parts) do
+                if typeof(p) == "Instance" and p.Parent then
+                    if p:IsA("Shirt") then hadShirt = true end
+                    if p:IsA("Pants") then hadPants = true end
+                    p:Destroy()
+                end
+            end
+            equipped[name] = nil
+            local char = LocalPlayer.Character if not char then return end
+            if hadShirt and origShirtTemplate and not char:FindFirstChildOfClass("Shirt") then
+                local s = Instance.new("Shirt") s.ShirtTemplate = origShirtTemplate s.Parent = char
+            end
+            if hadPants and origPantsTemplate and not char:FindFirstChildOfClass("Pants") then
+                local p = Instance.new("Pants") p.PantsTemplate = origPantsTemplate p.Parent = char
+            end
+        end)
+    end
+
+    ----------------------------------------------------
+    -- EMOTE SYSTEM
+    ----------------------------------------------------
+
+    local CurrentTrack = nil
+
+    local function LoadTrack(id, speed, looped)
+        pcall(function()
+            if CurrentTrack then CurrentTrack:Stop(0) end
+            local animId = "rbxassetid://" .. tostring(id)
+            pcall(function()
+                local result = game:GetObjects("rbxassetid://" .. tostring(id))
+                if result and #result > 0 then
+                    local anim = result[1]
+                    if anim:IsA("Animation") and anim.AnimationId ~= "" then animId = anim.AnimationId end
+                end
+            end)
+            local newAnim = Instance.new("Animation")
+            newAnim.AnimationId = animId
+            local ok, newTrack = pcall(function() return humanoid:LoadAnimation(newAnim) end)
+            if not ok or not newTrack then return end
+            newTrack.Priority = Enum.AnimationPriority.Action4
+            newTrack:Play(0.1, 1, speed or 1)
+            newTrack.Looped = (looped ~= false)
+            CurrentTrack = newTrack
+        end)
+    end
+
+    local EMOTES = {
+        { title = "BBS",         id = 83690407262789,  speed = 1.35 },
+        { title = "Bop",         id = 8028669437,       speed = 1.1  },
+        { title = "Hackers",     id = 10714364213,      speed = 1    },
+        { title = "HD",          id = 133666867152446,  speed = 1    },
+        { title = "Keep It Hot", id = 98979972129763,   speed = 1    },
+        { title = "CCL",         id = 92859581691366,   speed = 1    },
+        { title = "TTL",         id = 2293391158,       speed = 1    },
+        { title = "Sam Slash",   id = 15249657798,      speed = 1    },
+        { title = "Sturdy",      id = 14215791622,      speed = 1    },
+        { title = "Griddy",      id = 8028694339,       speed = 1    },
+        { title = "Ball Spin",   id = 14215798544,      speed = 1    },
+        { title = "Mop",         id = 14215807283,      speed = 1    },
+        { title = "Headspin",    id = 14920821886,      speed = 1    },
+        { title = "Druski",      id = 14901504235,      speed = 1    },
+        { title = "Smith Knicks", id = 15312473847,      speed = 1    },
+        { title = "Moon",        id = 14216002323,      speed = 1    },
+        { title = "Thug Shake",  id = 13550466835,      speed = 1    },
+        { title = "Hacky Sack",  id = 14220954146,      speed = 1    },
+        { title = "Gronk Spike", id = 13782932458,      speed = 1    },
+        { title = "Dimension",   id = 5618747341,       speed = 1    },
+        { title = "Goodnight",   id = 15375772247,      speed = 1    },
+    }
+
+    ----------------------------------------------------
+    -- ITEMS TAB UI
+    ----------------------------------------------------
+
+    local itemsPage = pages["ITEMS"]
+
+    local itemsHeader = Instance.new("TextLabel")
+    itemsHeader.Size = UDim2.new(1,0,0,20)
+    itemsHeader.BackgroundTransparency = 1
+    itemsHeader.Text = "ITEMS / CLOTHING"
+    itemsHeader.Font = Enum.Font.GothamBold
+    itemsHeader.TextSize = 11
+    itemsHeader.TextColor3 = Color3.fromRGB(120,120,140)
+    itemsHeader.TextXAlignment = Enum.TextXAlignment.Left
+    itemsHeader.Parent = itemsPage
+    local itemsPad = Instance.new("UIPadding", itemsHeader)
+    itemsPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Items", "ITEMS", itemsHeader)
+
+    local itemsList = Instance.new("Frame")
+    itemsList.Size = UDim2.new(1,-12,1,-26)
+    itemsList.Position = UDim2.new(0,6,0,24)
+    itemsList.BackgroundTransparency = 1
+    itemsList.Parent = itemsPage
+
+    local itemsLayout = Instance.new("UIListLayout")
+    itemsLayout.FillDirection = Enum.FillDirection.Vertical
+    itemsLayout.Padding = UDim.new(0,4)
+    itemsLayout.Parent = itemsList
+
+    for name, data in pairs(CLOTHING_ITEMS) do
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1,0,0,26)
+        row.BackgroundColor3 = Color3.fromRGB(25,25,32)
+        row.BorderSizePixel = 0
+        row.Parent = itemsList
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.6,0,1,0)
+        lbl.Position = UDim2.new(0,6,0,0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = name
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 11
+        lbl.TextColor3 = Color3.fromRGB(220,220,230)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = row
+
+        local equipBtn = Instance.new("TextButton")
+        equipBtn.Size = UDim2.new(0,70,0,20)
+        equipBtn.Position = UDim2.new(1,-150,0.5,-10)
+        equipBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
+        equipBtn.BorderSizePixel = 0
+        equipBtn.Text = "Equip"
+        equipBtn.Font = Enum.Font.GothamBold
+        equipBtn.TextSize = 10
+        equipBtn.TextColor3 = Color3.fromRGB(220,220,230)
+        equipBtn.Parent = row
+        Instance.new("UICorner", equipBtn).CornerRadius = UDim.new(0,8)
+
+        local unequipBtn = Instance.new("TextButton")
+        unequipBtn.Size = UDim2.new(0,70,0,20)
+        unequipBtn.Position = UDim2.new(1,-74,0.5,-10)
+        unequipBtn.BackgroundColor3 = Color3.fromRGB(55,30,30)
+        unequipBtn.BorderSizePixel = 0
+        unequipBtn.Text = "Unequip"
+        unequipBtn.Font = Enum.Font.GothamBold
+        unequipBtn.TextSize = 10
+        unequipBtn.TextColor3 = Color3.fromRGB(230,200,200)
+        unequipBtn.Parent = row
+        Instance.new("UICorner", unequipBtn).CornerRadius = UDim.new(0,8)
+
+        equipBtn.MouseButton1Click:Connect(function()
+            equipClothing(name)
+        end)
+
+        unequipBtn.MouseButton1Click:Connect(function()
+            unequipItem(name)
+        end)
+
+        registerSearch(name, "ITEMS", row)
+    end
+
+    ----------------------------------------------------
+    -- EMOTES TAB UI
+    ----------------------------------------------------
+
+    local emotesPage = pages["EMOTES"]
+
+    local emotesHeader = Instance.new("TextLabel")
+    emotesHeader.Size = UDim2.new(1,0,0,20)
+    emotesHeader.BackgroundTransparency = 1
+    emotesHeader.Text = "EMOTES"
+    emotesHeader.Font = Enum.Font.GothamBold
+    emotesHeader.TextSize = 11
+    emotesHeader.TextColor3 = Color3.fromRGB(120,120,140)
+    emotesHeader.TextXAlignment = Enum.TextXAlignment.Left
+    emotesHeader.Parent = emotesPage
+    local emotesPad = Instance.new("UIPadding", emotesHeader)
+    emotesPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Emotes", "EMOTES", emotesHeader)
+
+    local emotesList = Instance.new("Frame")
+    emotesList.Size = UDim2.new(1,-12,1,-26)
+    emotesList.Position = UDim2.new(0,6,0,24)
+    emotesList.BackgroundTransparency = 1
+    emotesList.Parent = emotesPage
+
+    local emotesLayout = Instance.new("UIListLayout")
+    emotesLayout.FillDirection = Enum.FillDirection.Vertical
+    emotesLayout.Padding = UDim.new(0,4)
+    emotesLayout.Parent = emotesList
+
+    for _, emote in ipairs(EMOTES) do
+        local row = Instance.new("Frame")
+        row.Size = UDim2.new(1,0,0,26)
+        row.BackgroundColor3 = Color3.fromRGB(25,25,32)
+        row.BorderSizePixel = 0
+        row.Parent = emotesList
+        Instance.new("UICorner", row).CornerRadius = UDim.new(0,6)
+
+        local lbl = Instance.new("TextLabel")
+        lbl.Size = UDim2.new(0.6,0,1,0)
+        lbl.Position = UDim2.new(0,6,0,0)
+        lbl.BackgroundTransparency = 1
+        lbl.Text = emote.title
+        lbl.Font = Enum.Font.Gotham
+        lbl.TextSize = 11
+        lbl.TextColor3 = Color3.fromRGB(220,220,230)
+        lbl.TextXAlignment = Enum.TextXAlignment.Left
+        lbl.Parent = row
+
+        local playBtn = Instance.new("TextButton")
+        playBtn.Size = UDim2.new(0,70,0,20)
+        playBtn.Position = UDim2.new(1,-80,0.5,-10)
+        playBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
+        playBtn.BorderSizePixel = 0
+        playBtn.Text = "Play"
+        playBtn.Font = Enum.Font.GothamBold
+        playBtn.TextSize = 10
+        playBtn.TextColor3 = Color3.fromRGB(220,220,230)
+        playBtn.Parent = row
+        Instance.new("UICorner", playBtn).CornerRadius = UDim.new(0,8)
+
+        playBtn.MouseButton1Click:Connect(function()
+            LoadTrack(emote.id, emote.speed)
+        end)
+
+        registerSearch(emote.title, "EMOTES", row)
+    end
+
+    local controlsHeader = Instance.new("TextLabel")
+    controlsHeader.Size = UDim2.new(1,0,0,20)
+    controlsHeader.BackgroundTransparency = 1
+    controlsHeader.Text = "CONTROLS"
+    controlsHeader.Font = Enum.Font.GothamBold
+    controlsHeader.TextSize = 11
+    controlsHeader.TextColor3 = Color3.fromRGB(120,120,140)
+    controlsHeader.TextXAlignment = Enum.TextXAlignment.Left
+    controlsHeader.Parent = emotesList
+    local chPad = Instance.new("UIPadding", controlsHeader)
+    chPad.PaddingLeft = UDim.new(0,6)
+    registerSearch("Emote Controls", "EMOTES", controlsHeader)
+
+    local stopBtn = Instance.new("TextButton")
+    stopBtn.Size = UDim2.new(0,120,0,24)
+    stopBtn.BackgroundColor3 = Color3.fromRGB(40,40,55)
+    stopBtn.BorderSizePixel = 0
+    stopBtn.Text = "Stop Animation"
+    stopBtn.Font = Enum.Font.GothamBold
+    stopBtn.TextSize = 11
+    stopBtn.TextColor3 = Color3.fromRGB(220,220,230)
+    stopBtn.Parent = emotesList
+    Instance.new("UICorner", stopBtn).CornerRadius = UDim.new(0,8)
+
+    stopBtn.MouseButton1Click:Connect(function()
+        if CurrentTrack then
+            CurrentTrack:Stop(0)
+            CurrentTrack = nil
         end
     end)
 
+    registerSearch("Stop Animation", "EMOTES", stopBtn)
+
     ----------------------------------------------------
-    -- INPUT HANDLING (ONE-KEYBIND SYSTEM)
+    -- INPUT HANDLING 
     ----------------------------------------------------
 
     UserInputService.InputBegan:Connect(function(input,gpe)
@@ -1633,12 +2121,24 @@ end)
         checkFeature("JumpAssist",10)
         checkFeature("SmoothJump",11)
         checkFeature("ToggleGUI",nil)
-        checkFeature("Console",nil)
+    end)
+
+    ----------------------------------------------------
+    -- MAIN LOOP
+    ----------------------------------------------------
+    RunService.Heartbeat:Connect(function(dt)
+        applyWalkSpeed()
+        applyHipHeight()
+        applyGravity()
+        applySideTech()
+        applyJumpVector()
+        applySmoothJump(dt)
+
     end)
 end
 
 ----------------------------------------------------
--- PART 2 — SNOW HUB KEY GUI
+-- SNOW HUB KEY GUI
 ----------------------------------------------------
 
 local UserInputService = game:GetService("UserInputService")
@@ -1650,9 +2150,6 @@ unlockGui.IgnoreGuiInset = true
 unlockGui.ResetOnSpawn = false
 unlockGui.Parent = game:GetService("CoreGui")
 
-----------------------------------------------------
--- Frosted Blur Background
-----------------------------------------------------
 local blur = Instance.new("BlurEffect")
 blur.Size = 0
 blur.Parent = Lighting
@@ -1664,9 +2161,6 @@ task.spawn(function()
     end
 end)
 
-----------------------------------------------------
--- Main Key Frame
-----------------------------------------------------
 local uFrame = Instance.new("Frame")
 uFrame.Size = UDim2.new(0, 380, 0, 260)
 uFrame.Position = UDim2.new(0.5, -190, 0.5, -130)
@@ -1684,9 +2178,6 @@ glow.Thickness = 2
 glow.Color = Color3.fromRGB(200, 50, 50)
 glow.Transparency = 0.35
 
-----------------------------------------------------
--- Title
-----------------------------------------------------
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
@@ -1696,9 +2187,6 @@ title.TextSize = 22
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
 title.Parent = uFrame
 
-----------------------------------------------------
--- Icon
-----------------------------------------------------
 local icon = Instance.new("ImageLabel")
 icon.Size = UDim2.new(0, 60, 0, 60)
 icon.Position = UDim2.new(0.5, -30, 0, 50)
@@ -1707,9 +2195,6 @@ icon.Image = "rbxassetid://7072724538"
 icon.ImageColor3 = Color3.fromRGB(200, 50, 50)
 icon.Parent = uFrame
 
-----------------------------------------------------
--- Discord ID Input Box
-----------------------------------------------------
 local uBox = Instance.new("TextBox")
 uBox.Size = UDim2.new(1, -60, 0, 45)
 uBox.Position = UDim2.new(0, 30, 0, 130)
@@ -1724,9 +2209,6 @@ uBox.Parent = uFrame
 
 Instance.new("UICorner", uBox).CornerRadius = UDim.new(0, 10)
 
-----------------------------------------------------
--- Unlock Button
-----------------------------------------------------
 local uBtn = Instance.new("TextButton")
 uBtn.Size = UDim2.new(1, -60, 0, 45)
 uBtn.Position = UDim2.new(0, 30, 0, 185)
@@ -1748,9 +2230,6 @@ uBtn.MouseLeave:Connect(function()
     uBtn.BackgroundColor3 = Color3.fromRGB(200, 50, 50)
 end)
 
-----------------------------------------------------
--- Status Text
-----------------------------------------------------
 local uStatus = Instance.new("TextLabel")
 uStatus.Size = UDim2.new(1, 0, 0, 30)
 uStatus.Position = UDim2.new(0, 0, 1, -35)
@@ -1761,9 +2240,6 @@ uStatus.TextColor3 = Color3.fromRGB(255, 70, 70)
 uStatus.Text = ""
 uStatus.Parent = uFrame
 
-----------------------------------------------------
--- Minimize Button + Draggable Orb
-----------------------------------------------------
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
 closeBtn.Position = UDim2.new(1, -34, 0, 6)
@@ -1806,9 +2282,6 @@ closeBtn.MouseButton1Click:Connect(function()
     orb.Visible = true
 end)
 
-----------------------------------------------------
--- Orb Dragging
-----------------------------------------------------
 local orbDragging = false
 local orbDragStart, orbStartPos
 
@@ -1845,10 +2318,6 @@ orb.InputBegan:Connect(function(input)
     end
 end)
 
-----------------------------------------------------
---  UNLOCK LOGIC 
-----------------------------------------------------
-
 local function cleanupKeyGui()
     if blur then blur:Destroy() end
     if unlockGui then unlockGui:Destroy() end
@@ -1859,9 +2328,6 @@ local function deny(msg)
     uStatus.Text = msg
 end
 
-----------------------------------------------------
--- MAIN UNLOCK BUTTON LOGIC (WHITELIST + BLACKLIST)
-----------------------------------------------------
 uBtn.MouseButton1Click:Connect(function()
     local discord = tostring(uBox.Text or ""):gsub("%s+", "")
 
