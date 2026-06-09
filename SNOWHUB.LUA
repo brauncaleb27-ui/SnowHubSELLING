@@ -1008,7 +1008,7 @@ local function InitSnowHub()
 
     local getSJC_JumpAdjuster, setSJC_JumpAdjuster = createSlider(advPage,"JUMP ADJUSTER (VERTICAL)",50,60,50,advY); advY += 60
     local getSJC_JumpVelocity, setSJC_JumpVelocity = createSlider(advPage,"JUMP VELOCITY (HORIZONTAL)",10,45,10,advY); advY += 60
-    local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,150,130,advY); advY += 60
+    local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,200,130,advY); advY += 60
     local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3.5,1.5,advY); advY += 60
 
     ----------------------------------------------------
