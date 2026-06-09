@@ -988,7 +988,7 @@ local function InitSnowHub()
     local advPage = pages["ADVANCED"]
     local advY = 0
 
-    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,110,16,advY); advY += 60
+    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,25,16,advY); advY += 60
     local getHipHeight, setHipHeight = createSlider(advPage,"HIP HEIGHT",1,5,originalHipHeight,advY); advY += 60
     local getGravity, setGravity = createSlider(advPage,"GRAVITY",170,200,defaultGravity,advY); advY += 60
 
@@ -1009,7 +1009,7 @@ local function InitSnowHub()
     local getSJC_JumpAdjuster, setSJC_JumpAdjuster = createSlider(advPage,"JUMP ADJUSTER (VERTICAL)",50,60,50,advY); advY += 60
     local getSJC_JumpVelocity, setSJC_JumpVelocity = createSlider(advPage,"JUMP VELOCITY (HORIZONTAL)",10,45,10,advY); advY += 60
     local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,150,130,advY); advY += 60
-    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,2.5,1.5,advY); advY += 60
+    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3.5,1.5,advY); advY += 60
 
     ----------------------------------------------------
     -- KEYBINDS PAGE 
@@ -2189,7 +2189,7 @@ glow.Transparency = 0.35
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0, 40)
 title.BackgroundTransparency = 1
-title.Text = "SNOW HUB — ACCESS"
+title.Text = "SNOW HUB"
 title.Font = Enum.Font.GothamBold
 title.TextSize = 22
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
