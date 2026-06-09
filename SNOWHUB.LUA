@@ -1006,10 +1006,10 @@ local function InitSnowHub()
     local getJumpAssistPower, setJumpAssistPower = createSlider(advPage,"JUMP ASSIST POWER",0.1,1.5,0.1,advY); advY += 60
     local getJumpAssistCD, setJumpAssistCD = createSlider(advPage,"JUMP ASSIST COOLDOWN",0.1,5,5.0,advY); advY += 60
 
-    local getSJC_JumpAdjuster, setSJC_JumpAdjuster = createSlider(advPage,"JUMP ADJUSTER (VERTICAL)",50,55,50,advY); advY += 60
-    local getSJC_JumpVelocity, setSJC_JumpVelocity = createSlider(advPage,"JUMP VELOCITY (HORIZONTAL)",10,15,10,advY); advY += 60
+    local getSJC_JumpAdjuster, setSJC_JumpAdjuster = createSlider(advPage,"JUMP ADJUSTER (VERTICAL)",50,60,50,advY); advY += 60
+    local getSJC_JumpVelocity, setSJC_JumpVelocity = createSlider(advPage,"JUMP VELOCITY (HORIZONTAL)",10,45,10,advY); advY += 60
     local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,150,130,advY); advY += 60
-    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,1.7,1.5,advY); advY += 60
+    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,2.5,1.5,advY); advY += 60
 
     ----------------------------------------------------
     -- KEYBINDS PAGE 
@@ -1486,13 +1486,21 @@ end
             local dist = offset.Magnitude
             local vel = root.AssemblyLinearVelocity
 
+        ----------------------------------------------------
+        -- SMOOTH ROTATION
+        ----------------------------------------------------
+        local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
+        local lookCF = CFrame.lookAt(root.Position, flatTarget)
+
+        root.CFrame = root.CFrame:Lerp(lookCF, 0.20)
+
             if dist > 2.5 then
-                local multiplier = pullStrength * 18
+                local multiplier = pullStrength * 15
                 local desired = offset.Unit * multiplier
                 root.AssemblyLinearVelocity = Vector3.new(
-                    vel.X + (desired.X - vel.X) * 0.25,
+                    vel.X + (desired.X - vel.X) * 0.35,
                     vel.Y,
-                    vel.Z + (desired.Z - vel.Z) * 0.25
+                    vel.Z + (desired.Z - vel.Z) * 0.35
                 )
             end
 
@@ -1500,25 +1508,25 @@ end
                 local centerDir = (headPos - root.Position)
                 local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
                 if horizontal.Magnitude > 0 then
-                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 5)
+                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 7)
                 end
             end
 
             if dist <= 2 then
                 local boostOffset = headPos - root.Position
                 root.AssemblyLinearVelocity = Vector3.new(
-                    boostOffset.X * (stickStrength * 5),
+                    boostOffset.X * (stickStrength * 8),
                     root.AssemblyLinearVelocity.Y,
-                    boostOffset.Z * (stickStrength * 5)
+                    boostOffset.Z * (stickStrength * 8)
                 )
             end
 
             if dist <= 1.2 then
                 local lock = headPos - root.Position
                 root.AssemblyLinearVelocity = Vector3.new(
-                    lock.X * (stickStrength * 6),
+                    lock.X * (stickStrength * 8),
                     root.AssemblyLinearVelocity.Y,
-                    lock.Z * (stickStrength * 6)
+                    lock.Z * (stickStrength * 8)
                 )
             end
         end
