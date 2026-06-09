@@ -1464,11 +1464,11 @@ end
         return nearest
     end
 
-    ----------------------------------------------------
-    -- HEADLOCK
-    ----------------------------------------------------
+----------------------------------------------------
+-- HEADLOCK
+----------------------------------------------------
 
-    RunService.RenderStepped:Connect(function()
+RunService.RenderStepped:Connect(function()
     -- MASTER + FEATURE CHECK
     if not masterStates[7] then return end
     if not featureStates[7] then return end
@@ -1486,24 +1486,24 @@ end
         local vel = root.AssemblyLinearVelocity
 
         ----------------------------------------------------
-        -- SMOOTH ROTATION
+        --  SMOOTH ROTATION
         ----------------------------------------------------
         local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
         local lookCF = CFrame.lookAt(root.Position, flatTarget)
 
-        root.CFrame = root.CFrame:Lerp(lookCF, 0.18)
+        root.CFrame = root.CFrame:Lerp(lookCF, 0.20)
 
         ----------------------------------------------------
         -- PULL
         ----------------------------------------------------
         if dist > 2.5 then
-            local multiplier = pullStrength * 18
+            local multiplier = pullStrength * 20
             local desired = offset.Unit * multiplier
 
             root.AssemblyLinearVelocity = Vector3.new(
-                vel.X + (desired.X - vel.X) * 0.25,
+                vel.X + (desired.X - vel.X) * 0.35,
                 vel.Y,
-                vel.Z + (desired.Z - vel.Z) * 0.25
+                vel.Z + (desired.Z - vel.Z) * 0.35
             )
         end
 
@@ -1515,7 +1515,7 @@ end
             local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
 
             if horizontal.Magnitude > 0 then
-                root.AssemblyLinearVelocity += horizontal.Unit * (stickiness * 5)
+                root.AssemblyLinearVelocity += horizontal.Unit * (stickiness * 7.5)
             end
         end
 
@@ -1526,9 +1526,9 @@ end
             local boostOffset = headPos - root.Position
 
             root.AssemblyLinearVelocity = Vector3.new(
-                boostOffset.X * (stickiness * 5),
+                boostOffset.X * (stickiness * 8),
                 root.AssemblyLinearVelocity.Y,
-                boostOffset.Z * (stickiness * 5)
+                boostOffset.Z * (stickiness * 8)
             )
         end
 
@@ -1539,9 +1539,9 @@ end
             local lock = headPos - root.Position
 
             root.AssemblyLinearVelocity = Vector3.new(
-                lock.X * (stickiness * 6),
+                lock.X * (stickiness * 7),
                 root.AssemblyLinearVelocity.Y,
-                lock.Z * (stickiness * 6)
+                lock.Z * (stickiness * 7)
             )
         end
     end
