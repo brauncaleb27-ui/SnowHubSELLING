@@ -988,7 +988,7 @@ local function InitSnowHub()
     local advPage = pages["ADVANCED"]
     local advY = 0
 
-    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,30,16,advY); advY += 60
+    local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,40,16,advY); advY += 60
     local getHipHeight, setHipHeight = createSlider(advPage,"HIP HEIGHT",1,5,originalHipHeight,advY); advY += 60
     local getGravity, setGravity = createSlider(advPage,"GRAVITY",170,200,defaultGravity,advY); advY += 60
 
