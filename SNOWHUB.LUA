@@ -1467,62 +1467,85 @@ end
     ----------------------------------------------------
     -- HEADLOCK
     ----------------------------------------------------
+
     RunService.RenderStepped:Connect(function()
-        if not (masterStates[7] and featureStates[7]) then return end
-        if not humanoid or not root then return end
+    -- MASTER + FEATURE CHECK
+    if not masterStates[7] then return end
+    if not featureStates[7] then return end
 
-        local target = closestPlayer()
-        if not target or not target.Character then return end
+    local target = closestPlayer()
+    if not target or not target.Character then return end
 
-        local head = target.Character:FindFirstChild("Head")
-        if not head then return end
+    local head = target.Character:FindFirstChild("Head")
+    if not head then return end
 
-        pullStrength = getPullStrength()
-        stickStrength = getStickStrength()
+    if humanoid.FloorMaterial == Enum.Material.Air then
+        local headPos = head.Position + Vector3.new(0,1.6,0)
+        local offset = headPos - root.Position
+        local dist = offset.Magnitude
+        local vel = root.AssemblyLinearVelocity
 
-        if humanoid.FloorMaterial == Enum.Material.Air then
-            local headPos = head.Position + Vector3.new(0,1.6,0)
-            local offset = headPos - root.Position
-            local dist = offset.Magnitude
-            local vel = root.AssemblyLinearVelocity
+        ----------------------------------------------------
+        -- SMOOTH ROTATION
+        ----------------------------------------------------
+        local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
+        local lookCF = CFrame.lookAt(root.Position, flatTarget)
 
-            if dist > 2.5 then
-                local multiplier = pullStrength * 18
-                local desired = offset.Unit * multiplier
-                root.AssemblyLinearVelocity = Vector3.new(
-                    vel.X + (desired.X - vel.X) * 0.25,
-                    vel.Y,
-                    vel.Z + (desired.Z - vel.Z) * 0.25
-                )
-            end
+        root.CFrame = root.CFrame:Lerp(lookCF, 0.18)
 
-            if dist <= 3 then
-                local centerDir = (headPos - root.Position)
-                local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
-                if horizontal.Magnitude > 0 then
-                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 5)
-                end
-            end
+        ----------------------------------------------------
+        -- PULL
+        ----------------------------------------------------
+        if dist > 2.5 then
+            local multiplier = pullStrength * 18
+            local desired = offset.Unit * multiplier
 
-            if dist <= 2 then
-                local boostOffset = headPos - root.Position
-                root.AssemblyLinearVelocity = Vector3.new(
-                    boostOffset.X * (stickStrength * 5),
-                    root.AssemblyLinearVelocity.Y,
-                    boostOffset.Z * (stickStrength * 5)
-                )
-            end
+            root.AssemblyLinearVelocity = Vector3.new(
+                vel.X + (desired.X - vel.X) * 0.25,
+                vel.Y,
+                vel.Z + (desired.Z - vel.Z) * 0.25
+            )
+        end
 
-            if dist <= 1.2 then
-                local lock = headPos - root.Position
-                root.AssemblyLinearVelocity = Vector3.new(
-                    lock.X * (stickStrength * 6),
-                    root.AssemblyLinearVelocity.Y,
-                    lock.Z * (stickStrength * 6)
-                )
+        ----------------------------------------------------
+        -- STICKINESS
+        ----------------------------------------------------
+        if dist <= 3 then
+            local centerDir = (headPos - root.Position)
+            local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
+
+            if horizontal.Magnitude > 0 then
+                root.AssemblyLinearVelocity += horizontal.Unit * (stickiness * 5)
             end
         end
-    end)
+
+        ----------------------------------------------------
+        -- BOOST MODE
+        ----------------------------------------------------
+        if dist <= 2 then
+            local boostOffset = headPos - root.Position
+
+            root.AssemblyLinearVelocity = Vector3.new(
+                boostOffset.X * (stickiness * 5),
+                root.AssemblyLinearVelocity.Y,
+                boostOffset.Z * (stickiness * 5)
+            )
+        end
+
+        ----------------------------------------------------
+        -- HEAD LOCK
+        ----------------------------------------------------
+        if dist <= 1.2 then
+            local lock = headPos - root.Position
+
+            root.AssemblyLinearVelocity = Vector3.new(
+                lock.X * (stickiness * 6),
+                root.AssemblyLinearVelocity.Y,
+                lock.Z * (stickiness * 6)
+            )
+        end
+    end
+end)
 
     ----------------------------------------------------
     -- HEAD BOOST
