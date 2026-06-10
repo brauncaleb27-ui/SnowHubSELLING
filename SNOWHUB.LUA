@@ -7,9 +7,6 @@ local WEBHOOK = "https://ptb.discord.com/api/webhooks/1513311570426466457/Y1y8g6
 
 local HttpService = game:GetService("HttpService")
 
-----------------------------------------------------
--- HTTP LOGGER 
-----------------------------------------------------
 local requestFunc = request or http_request or (syn and syn.request) or (fluxus and fluxus.request)
 
 local function SendLog(msg)
@@ -37,16 +34,10 @@ local RbxAnalytics = game:GetService("RbxAnalyticsService")
 
 local localPlayer = Players.LocalPlayer or Players.PlayerAdded:Wait()
 
-----------------------------------------------------
--- GET HWID
-----------------------------------------------------
 local function getHWID()
     return RbxAnalytics:GetClientId()
 end
 
-----------------------------------------------------
--- Whitelist
-----------------------------------------------------
 local WHITELIST = {
     ["1345621147223461890"] = {
         UserId = 10959304898,
@@ -129,15 +120,11 @@ end
 ----------------------------------------------------
 local function InitSnowHub()
 
-    -- HIDE LOGS
     print = function() end
     warn = function() end
     error = function() end
     if rconsoleprint then rconsoleprint = function() end end
 
-    ----------------------------------------------------
-    -- SERVICES 
-    ----------------------------------------------------
     local Players = game:GetService("Players")
     local RunService = game:GetService("RunService")
     local UserInputService = game:GetService("UserInputService")
@@ -169,21 +156,11 @@ local function InitSnowHub()
         username, userId, executorName, timeStr
     ))
 
-    ----------------------------------------------------
-    -- ORIGINAL VALUES
-    ----------------------------------------------------
     local originalHipHeight = humanoid.HipHeight
     local defaultGravity = Workspace.Gravity
     local originalWalkSpeed = humanoid.WalkSpeed
 
-    ----------------------------------------------------
-    -- PARAMETERS
-    ----------------------------------------------------
     local BallName = "Football"
-
-    local JPV_Active = false
-    local JPV_EndTime = 0
-    local JPV_Duration = 0.35
 
     local pulling = false
     local pullEndTime = 0
@@ -202,9 +179,6 @@ local function InitSnowHub()
     local JA_Cooldown = false
     local JA_Remaining = 0
 
-    ----------------------------------------------------
-    -- SMOOTH JUMP 
-    ----------------------------------------------------
     local sjc_boostEnabled = false
     local sjc_jumpAdjuster = 50
     local sjc_jumpVelocity = 80
@@ -212,9 +186,6 @@ local function InitSnowHub()
     local sjc_verticalVelocity = 0
     local sjc_smoothing = 5
 
-    ----------------------------------------------------
-    -- ONE-KEYBIND SYSTEM
-    ----------------------------------------------------
     local Keybinds = {
         WalkSpeed    = Enum.KeyCode.Backquote,
         HipHeight    = Enum.KeyCode.Backquote,
@@ -231,12 +202,11 @@ local function InitSnowHub()
     }
 
     ----------------------------------------------------
-    -- BALL DETECTION
+    -- BALL / FOOTBALL DETECTION
     ----------------------------------------------------
-
     local cachedBall = nil
 
-    local function findFootball()
+    local function findFootballSimple()
         if cachedBall and cachedBall.Parent then return cachedBall end
         for _, obj in ipairs(Workspace:GetDescendants()) do
             if obj:IsA("BasePart") and obj.Name == BallName then
@@ -259,8 +229,48 @@ local function InitSnowHub()
         end
     end)
 
-    local function getNearestBall()
-        return findFootball()
+    local function getFootball()
+        if character then
+            for _, child in ipairs(character:GetChildren()) do
+                if child:IsA("Tool") then
+                    local handle = child:FindFirstChild("Handle")
+                    if handle and handle.Name == "Football" then return handle end
+                end
+            end
+            for _, desc in ipairs(character:GetDescendants()) do
+                if desc:IsA("Weld") or desc:IsA("Motor6D") or desc:IsA("WeldConstraint") then
+                    if desc.Part0 and desc.Part0.Name == "Football" and desc.Part0:IsA("BasePart") then return desc.Part0 end
+                    if desc.Part1 and desc.Part1.Name == "Football" and desc.Part1:IsA("BasePart") then return desc.Part1 end
+                end
+            end
+        end
+
+        local parkMap = Workspace:FindFirstChild("ParkMap")
+        if parkMap then
+            for _, obj in ipairs(parkMap:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name == "Football" then return obj end
+            end
+        end
+
+        local pmMap = Workspace:FindFirstChild("ParkMatchMap")
+        if pmMap then
+            for _, obj in ipairs(pmMap:GetDescendants()) do
+                if obj:IsA("BasePart") and obj.Name == "Football" then return obj end
+            end
+        end
+
+        local simple = findFootballSimple()
+        if simple then return simple end
+
+        for _, obj in ipairs(Workspace:GetDescendants()) do
+            if obj:IsA("BasePart") and obj.Name == "Football" then
+                if obj.Parent and not obj.Parent:IsA("ScreenGui") and not obj.Parent:IsA("BillboardGui") then
+                    return obj
+                end
+            end
+        end
+
+        return nil
     end
 
     ----------------------------------------------------
@@ -289,10 +299,6 @@ local function InitSnowHub()
     panelStroke.Color = Color3.fromRGB(200,50,50)
     panelStroke.Transparency = 0.4
     panelStroke.Parent = panel
-
-    ----------------------------------------------------
-    -- TITLE BAR / TABS / PAGES
-    ----------------------------------------------------
 
     local titleBar = Instance.new("TextLabel")
     titleBar.Size = UDim2.new(1,0,0,36)
@@ -984,10 +990,6 @@ local function InitSnowHub()
         end, setValue
     end
 
-
-    local advPage = pages["ADVANCED"]
-    local advY = 0
-
     local getWalkSpeed, setWalkSpeed = createSlider(advPage,"WALK SPEED",16,25,16,advY); advY += 60
     local getHipHeight, setHipHeight = createSlider(advPage,"HIP HEIGHT",1,5,originalHipHeight,advY); advY += 60
     local getGravity, setGravity = createSlider(advPage,"GRAVITY",170,200,defaultGravity,advY); advY += 60
@@ -1226,88 +1228,96 @@ local function InitSnowHub()
         end
     end)
 
-----------------------------------------------------
--- HITBOX
-----------------------------------------------------
+    ----------------------------------------------------
+    -- HITBOX
+    ----------------------------------------------------
 
-local function createHitbox(char)
-    if not hitboxEnabled then return end
-    if char == character then return end
+    local function createHitbox(char)
+        if not hitboxEnabled then return end
+        if char == character then return end
 
-    local torso = char:FindFirstChild("UpperTorso")
-    if not torso then return end
+        local torso = char:FindFirstChild("UpperTorso")
+        if not torso then return end
 
-    if hitboxes[char] then
-        hitboxes[char]:Destroy()
+        if hitboxes[char] then
+            hitboxes[char]:Destroy()
+        end
+
+        local box = Instance.new("Part")
+        box.Name = "UpperTorsoHitbox"
+        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+        box.Transparency = 1
+        box.CanCollide = true
+        box.Anchored = false
+        box.Massless = true
+        box.Parent = char
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = torso
+        weld.Part1 = box
+        weld.Parent = box
+
+        box.Position = torso.Position
+        hitboxes[char] = box
     end
 
-    local box = Instance.new("Part")
-    box.Name = "UpperTorsoHitbox"
-    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    box.Transparency = 1
-    box.CanCollide = true
-    box.Anchored = false
-    box.Massless = true
-    box.Parent = char
+    local function refreshHitboxes()
+        for _, v in pairs(hitboxes) do
+            if v then v:Destroy() end
+        end
+        hitboxes = {}
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = torso
-    weld.Part1 = box
-    weld.Parent = box
-
-    box.Position = torso.Position
-    hitboxes[char] = box
-end
-
-local function refreshHitboxes()
-    for _, v in pairs(hitboxes) do
-        if v then v:Destroy() end
-    end
-    hitboxes = {}
-
-    if hitboxEnabled then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= player and plr.Character then
-                createHitbox(plr.Character)
+        if hitboxEnabled then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character then
+                    createHitbox(plr.Character)
+                end
             end
         end
     end
-end
 
     ----------------------------------------------------
-    -- JUMP VECTOR
+    -- JUMP VECTOR 
     ----------------------------------------------------
-    local function applyJPV()
-        if not (masterStates[4] and featureStates[4]) then return end
-        if not root or not humanoid then return end
 
-        local ball = getNearestFootBall()
-        if not ball then return end
+    local pullActive = false
+    local pullStart = 0
+    local pullDuration = 0.15
 
-        local ballPos = ball.Position
-        local dist = (ballPos - root.Position).Magnitude
-        local maxDist = getJPVDistance()
-        if dist > maxDist then
+    humanoid.Jumping:Connect(function()
+        if masterStates[4] and featureStates[4] then
+            pullActive = true
+            pullStart = tick()
+        end
+    end)
+
+    local function applyJumpVector(dt)
+        if not pullActive then return end
+        if tick() - pullStart > pullDuration then
+            pullActive = false
             return
         end
 
-        local smooth = math.clamp(getJumpSmooth(), 0.05, 1)
-        local strength = getPullStrength() * 35
+        if not root or not humanoid then return end
 
-        local targetPos = ballPos + Vector3.new(0, 2.5, 0)
-        local dir = (targetPos - root.Position)
-        if dir.Magnitude < 1e-3 then return end
-        dir = dir.Unit
+        local ball = getFootball()
+        if not ball then return end
 
-        local currentVel = root.AssemblyLinearVelocity
-        local desiredVel = dir * strength
+        local distance = (ball.Position - root.Position).Magnitude
+        local maxDist = getJPVDistance() * 10
+        if distance > maxDist then return end
 
-        local alpha = smooth * 0.35
-        root.AssemblyLinearVelocity = Vector3.new(
-            currentVel.X + (desiredVel.X - currentVel.X) * alpha,
-            currentVel.Y,
-            currentVel.Z + (desiredVel.Z - currentVel.Z) * alpha
-        )
+        local smooth = math.clamp(getJumpSmooth(), 0.02, 0.1)
+        local strength = getPullStrength() * 0.1
+
+        local targetPos = ball.Position + Vector3.new(0, 2.5, 0)
+
+        local currentCF = root.CFrame
+        local currentPos = currentCF.Position
+
+        local newPos = currentPos:Lerp(targetPos, smooth * strength)
+
+        root.CFrame = CFrame.new(newPos, newPos + currentCF.LookVector)
     end
 
     ----------------------------------------------------
@@ -1337,10 +1347,6 @@ end
             sjc_verticalVelocity = 0
         end
     end
-
-    ----------------------------------------------------
-    -- SMOOTH JUMP JUMP EVENT
-    ----------------------------------------------------
 
     humanoid.Jumping:Connect(function(active)
         if not (masterStates[11] and featureStates[11]) then return end
@@ -1486,13 +1492,9 @@ end
             local dist = offset.Magnitude
             local vel = root.AssemblyLinearVelocity
 
-        ----------------------------------------------------
-        -- SMOOTH ROTATION
-        ----------------------------------------------------
-        local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
-        local lookCF = CFrame.lookAt(root.Position, flatTarget)
-
-        root.CFrame = root.CFrame:Lerp(lookCF, 0.20)
+            local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
+            local lookCF = CFrame.lookAt(root.Position, flatTarget)
+            root.CFrame = root.CFrame:Lerp(lookCF, 0.20)
 
             if dist > 2.5 then
                 local multiplier = pullStrength * 15
@@ -2072,7 +2074,6 @@ end
         local keyCode = input.KeyCode
         local keyForBind = (keyCode ~= Enum.KeyCode.Unknown) and keyCode or input.UserInputType
 
-        -- Infinite jump (space / ButtonA)
         if (keyCode == Enum.KeyCode.Space or keyCode == Enum.KeyCode.ButtonA)
             and masterStates[9] and featureStates[9] then
 
@@ -2139,9 +2140,8 @@ end
         applyHipHeight()
         applyGravity()
         applySideTech()
-        applyJumpVector()
+        applyJumpVector(dt)
         applySmoothJump(dt)
-
     end)
 end
 
