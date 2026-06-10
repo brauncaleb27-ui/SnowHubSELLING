@@ -57,11 +57,11 @@ local WHITELIST = {
     },
     ["1324640960126124043"] = {
         UserId = 4535950738,
-        HWID   = "A6C926F2-BE65-4210-BE94-F764CBC2C7E5"
+        HWID   = "a6c926f2-be65-4210-be94-f764cbc2c7e5"
     },
-    ["1212902997491978245"] = {
-        UserId = 222222222,
-        HWID   = "HWID-EXAMPLE-2"
+    ["1307119313160769659"] = {
+        UserId = 10997091722,
+        HWID   = "CFBEF7DE-17A0-425C-9F07-900A0DA3B871"
     },
 }
 
