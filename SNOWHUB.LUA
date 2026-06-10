@@ -1286,7 +1286,7 @@ local function InitSnowHub()
 
     local pullActive = false
     local pullStart = 0
-    local pullDuration = 0.15
+    local pullDuration = 0.45
 
     humanoid.Jumping:Connect(function()
         if masterStates[4] and featureStates[4] then
