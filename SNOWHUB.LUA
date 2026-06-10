@@ -1232,53 +1232,52 @@ local function InitSnowHub()
         end
     end)
 
-    ----------------------------------------------------
-    -- HITBOX
-    ----------------------------------------------------
+----------------------------------------------------
+-- HITBOX
+----------------------------------------------------
+local function createHitbox(char)
+    if not hitboxEnabled then return end
+    if char == character then return end
 
-    local function createHitbox(char)
-        if not hitboxEnabled then return end
-        if char == character then return end
+    local head = char:FindFirstChild("Head")
+    if not head then return end
 
-        local torso = char:FindFirstChild("UpperTorso")
-        if not torso then return end
-
-        if hitboxes[char] then
-            hitboxes[char]:Destroy()
-        end
-
-        local box = Instance.new("Part")
-        box.Name = "UpperTorsoHitbox"
-        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-        box.Transparency = 1
-        box.CanCollide = true
-        box.Anchored = false
-        box.Massless = true
-        box.Parent = char
-
-        local weld = Instance.new("WeldConstraint")
-        weld.Part0 = torso
-        weld.Part1 = box
-        weld.Parent = box
-
-        box.Position = torso.Position
-        hitboxes[char] = box
+    if hitboxes[char] then
+        hitboxes[char]:Destroy()
     end
 
-    local function refreshHitboxes()
-        for _, v in pairs(hitboxes) do
-            if v then v:Destroy() end
-        end
-        hitboxes = {}
+    local box = Instance.new("Part")
+    box.Name = "HeadHitbox"
+    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+    box.Transparency = 1
+    box.CanCollide = true
+    box.Anchored = false
+    box.Massless = true
+    box.Parent = char
 
-        if hitboxEnabled then
-            for _, plr in pairs(Players:GetPlayers()) do
-                if plr ~= player and plr.Character then
-                    createHitbox(plr.Character)
-                end
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = head
+    weld.Part1 = box
+    weld.Parent = box
+
+    box.Position = head.Position
+    hitboxes[char] = box
+end
+
+local function refreshHitboxes()
+    for _, v in pairs(hitboxes) do
+        if v then v:Destroy() end
+    end
+    hitboxes = {}
+
+    if hitboxEnabled then
+        for _, plr in pairs(Players:GetPlayers()) do
+            if plr ~= player and plr.Character then
+                createHitbox(plr.Character)
             end
         end
     end
+end
 
     ----------------------------------------------------
     -- JUMP VECTOR 
