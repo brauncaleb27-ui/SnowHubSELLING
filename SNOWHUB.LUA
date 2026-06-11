@@ -190,20 +190,27 @@ local function InitSnowHub()
     local sjc_verticalVelocity = 0
     local sjc_smoothing = 5
 
+    local ballTP_Enabled      = false
+    local ballTP_Size         = 6
+    local ballTP_Invisible    = false
+    local ballTP_Transparency = 0.5
+    local ballTP_OriginalSize = {}
+
     local Keybinds = {
-        WalkSpeed    = Enum.KeyCode.Backquote,
-        HipHeight    = Enum.KeyCode.Backquote,
-        Gravity      = Enum.KeyCode.Backquote,
-        JumpVector   = Enum.KeyCode.Backquote,
-        Hitbox       = Enum.KeyCode.Backquote,
-        SideTech     = Enum.KeyCode.Backquote,
-        HeadLock     = Enum.KeyCode.Backquote,
-        HeadBoost    = Enum.KeyCode.Backquote,
-        InfiniteJump = Enum.KeyCode.Backquote,
-        JumpAssist   = Enum.KeyCode.Backquote,
-        SmoothJump   = Enum.KeyCode.Backquote,
-        ToggleGUI    = Enum.KeyCode.Backquote,
-    }
+    WalkSpeed    = Enum.KeyCode.Backquote,
+    HipHeight    = Enum.KeyCode.Backquote,
+    Gravity      = Enum.KeyCode.Backquote,
+    JumpVector   = Enum.KeyCode.Backquote,
+    Hitbox       = Enum.KeyCode.Backquote,
+    SideTech     = Enum.KeyCode.Backquote,
+    HeadLock     = Enum.KeyCode.Backquote,
+    HeadBoost    = Enum.KeyCode.Backquote,
+    InfiniteJump = Enum.KeyCode.Backquote,
+    JumpAssist   = Enum.KeyCode.Backquote,
+    SmoothJump   = Enum.KeyCode.Backquote,
+    BallTP       = Enum.KeyCode.Backquote,
+    ToggleGUI    = Enum.KeyCode.Backquote,
+}
 
     ----------------------------------------------------
     -- BALL / FOOTBALL DETECTION
@@ -734,6 +741,7 @@ local function InitSnowHub()
     createToggleSwitch(mainPage,"INFINITE JUMP",9)
     createToggleSwitch(mainPage,"JUMP ASSIST",10)
     createToggleSwitch(mainPage,"SMOOTH JUMP",11)
+    createToggleSwitch(mainPage,"BALL TP",12)
 
     ----------------------------------------------------
     -- GLOBAL SEARCH BAR (MAIN TAB)
@@ -1017,6 +1025,9 @@ local function InitSnowHub()
     local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,200,130,advY); advY += 60
     local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3.5,1.5,advY); advY += 60
 
+    local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,12,1,advY); advY += 60
+    local getBallTPTransparency, setBallTPTransparency = createSlider(advPage,"BALL TP TRANSPARENCY",0.1,1,0.5,advY); advY += 60
+
     ----------------------------------------------------
     -- KEYBINDS PAGE 
     ----------------------------------------------------
@@ -1097,6 +1108,7 @@ local function InitSnowHub()
     makeBindRow("Infinite Jump","InfiniteJump")
     makeBindRow("Jump Assist","JumpAssist")
     makeBindRow("Smooth Jump","SmoothJump")
+    makeBindRow("Ball TP","BallTP")
     makeBindRow("Toggle GUI","ToggleGUI")
 
     ----------------------------------------------------
@@ -1697,6 +1709,106 @@ end
         end
     end)
 
+----------------------------------------------------
+-- BALL TP SYSTEM (FORWARD CHEST ZONE, NO FLING)
+----------------------------------------------------
+
+local function getBallTPHands(char)
+    local hands = {}
+    for _, v in ipairs(char:GetDescendants()) do
+        if not v:IsA("BasePart") then continue end
+
+        local n = v.Name:lower()
+
+        -- R15 hands ONLY
+        if n == "lefthand" or n == "righthand" then
+            table.insert(hands, v)
+        end
+
+        -- R6 hands ONLY
+        if n == "left arm" or n == "right arm" then
+            table.insert(hands, v)
+        end
+    end
+    return hands
+end
+
+local function applyBallTP(dt)
+    if not character then return end
+    if not masterStates[12] or not featureStates[12] then return end
+
+    local size = getBallTPSize()
+    local trans = getBallTPTransparency()
+
+    for _, hand in ipairs(getBallTPHands(character)) do
+
+        if not ballTP_OriginalSize[hand] then
+            ballTP_OriginalSize[hand] = hand.Size
+        end
+
+        ----------------------------------------------------
+        -- 1. HAND HITBOX (oval, strong)
+        ----------------------------------------------------
+        hand.Size         = Vector3.new(size * 1.45, size * 1.15, size * 1.45)
+        hand.Material     = Enum.Material.SmoothPlastic
+        hand.Color        = Color3.fromRGB(200, 50, 50)
+        hand.Transparency = math.clamp(trans + 0.1, 0, 1)
+        hand.CanCollide   = false
+        hand.Massless     = false
+        hand.CanTouch     = true
+
+        ----------------------------------------------------
+        -- 2. FORWARD CHEST HITBOX (the REAL fix)
+        ----------------------------------------------------
+        if not hand:FindFirstChild("ChestZone") then
+            local chest = Instance.new("Part")
+            chest.Name = "ChestZone"
+            chest.Size = Vector3.new(size * 2.8, size * 2.0, size * 2.2)
+            chest.Transparency = 1
+            chest.CanCollide = false
+            chest.CanTouch = true
+            chest.Massless = true
+            chest.Anchored = false
+            chest.Parent = hand
+
+            -- position it IN FRONT of your chest
+            chest.CFrame = hand.CFrame * CFrame.new(0, 0, -(size * 1.4))
+
+            -- weld so it never moves wrong
+            local weld = Instance.new("WeldConstraint")
+            weld.Part0 = hand
+            weld.Part1 = chest
+            weld.Parent = chest
+        end
+    end
+end
+
+local function removeBallTP()
+    if not character then return end
+
+    for _, hand in ipairs(getBallTPHands(character)) do
+        local original = ballTP_OriginalSize[hand]
+
+        if original then
+            hand.Size = original
+        end
+
+        if hand:FindFirstChild("ChestZone") then
+            hand.ChestZone:Destroy()
+        end
+
+        hand.Material     = Enum.Material.Plastic
+        hand.Color        = Color3.fromRGB(255,255,255)
+        hand.Transparency = 0
+        hand.CanCollide   = true
+        hand.Massless     = false
+        hand.CanTouch     = true
+    end
+
+    ballTP_OriginalSize = {}
+end
+
+
     ----------------------------------------------------
     -- SAFE HEAD LOCK 
     ----------------------------------------------------
@@ -2132,12 +2244,13 @@ end
         checkFeature("InfiniteJump",9)
         checkFeature("JumpAssist",10)
         checkFeature("SmoothJump",11)
+        checkFeature("BallTP",12)
         checkFeature("ToggleGUI",nil)
     end)
 
-    ----------------------------------------------------
-    -- MAIN LOOP
-    ----------------------------------------------------
+----------------------------------------------------
+-- MAIN LOOP
+----------------------------------------------------
     RunService.Heartbeat:Connect(function(dt)
         applyWalkSpeed()
         applyHipHeight()
@@ -2145,8 +2258,10 @@ end
         applySideTech()
         applyJumpVector(dt)
         applySmoothJump(dt)
+        applyBallTP(dt)
     end)
 end
+
 
 ----------------------------------------------------
 -- SNOW HUB KEY GUI
