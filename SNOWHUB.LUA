@@ -1510,10 +1510,6 @@ end
             local dist = offset.Magnitude
             local vel = root.AssemblyLinearVelocity
 
-            local flatTarget = Vector3.new(headPos.X, root.Position.Y, headPos.Z)
-            local lookCF = CFrame.lookAt(root.Position, flatTarget)
-            root.CFrame = root.CFrame:Lerp(lookCF, 0.20)
-
             if dist > 2.5 then
                 local multiplier = pullStrength * 15
                 local desired = offset.Unit * multiplier
