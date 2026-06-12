@@ -1716,55 +1716,70 @@ end
     end)
 
 ----------------------------------------------------
--- BALL TP SYSTEM (FORWARD CHEST ZONE, NO FLING)
+-- BALL TP SYSTEM (FINAL FIXED VERSION)
 ----------------------------------------------------
 
+local RunService = game:GetService("RunService")
+
+-- storage for original hand sizes
+local ballTP_OriginalSize = {}
+
+----------------------------------------------------
+-- HAND DETECTION (R6 + R15)
+----------------------------------------------------
 local function getBallTPHands(char)
     local hands = {}
     for _, v in ipairs(char:GetDescendants()) do
-        if not v:IsA("BasePart") then continue end
-
-        local n = v.Name:lower()
-
-        -- R15 hands ONLY
-        if n == "lefthand" or n == "righthand" then
-            table.insert(hands, v)
-        end
-
-        -- R6 hands ONLY
-        if n == "left arm" or n == "right arm" then
-            table.insert(hands, v)
+        if v:IsA("BasePart") then
+            local n = v.Name:lower()
+            if n == "lefthand" or n == "righthand" or n == "left arm" or n == "right arm" then
+                table.insert(hands, v)
+            end
         end
     end
     return hands
 end
 
+
+----------------------------------------------------
+-- APPLY BALL TP (ONLY RUNS WHEN ON)
+----------------------------------------------------
 local function applyBallTP(dt)
     if not character then return end
-    if not masterStates[12] or not featureStates[12] then return end
+
+    -- ⭐ HARD STOP — DO NOT RUN IF OFF
+    if masterStates[12] ~= true then return end
+    if featureStates[12] ~= true then return end
 
     local size = getBallTPSize()
     local trans = getBallTPTransparency()
 
     for _, hand in ipairs(getBallTPHands(character)) do
 
+        -- store original size once
         if not ballTP_OriginalSize[hand] then
             ballTP_OriginalSize[hand] = hand.Size
         end
 
         ----------------------------------------------------
-        -- 1. HAND HITBOX (oval, strong)
+        -- MENU SAFE TRANSPARENCY
         ----------------------------------------------------
-        hand.Size         = Vector3.new(size * 1.45, size * 1.15, size * 1.45)
-        hand.Material     = Enum.Material.SmoothPlastic
-        hand.Color        = Color3.fromRGB(200, 50, 50)
-        hand.Transparency = math.clamp(trans + 0.1, 0, 1)
-        hand.CanCollide   = false
-        hand.Massless     = false
-        hand.CanTouch     = true
+        local finalTrans = menuOpen and 1 or math.clamp(trans + 0.1, 0, 1)
+        hand.Transparency = finalTrans
+        hand.LocalTransparencyModifier = finalTrans
 
         ----------------------------------------------------
-        -- 2. FORWARD CHEST HITBOX (the REAL fix)
+        -- HAND HITBOX
+        ----------------------------------------------------
+        hand.Size       = Vector3.new(size * 1.45, size * 1.15, size * 1.45)
+        hand.Material   = Enum.Material.SmoothPlastic
+        hand.Color      = Color3.fromRGB(200, 50, 50)
+        hand.CanCollide = false
+        hand.Massless   = false
+        hand.CanTouch   = true
+
+        ----------------------------------------------------
+        -- CHEST ZONE (ONLY CREATED WHEN ON)
         ----------------------------------------------------
         if not hand:FindFirstChild("ChestZone") then
             local chest = Instance.new("Part")
@@ -1777,10 +1792,8 @@ local function applyBallTP(dt)
             chest.Anchored = false
             chest.Parent = hand
 
-            -- position it IN FRONT of your chest
             chest.CFrame = hand.CFrame * CFrame.new(0, 0, -(size * 1.4))
 
-            -- weld so it never moves wrong
             local weld = Instance.new("WeldConstraint")
             weld.Part0 = hand
             weld.Part1 = chest
@@ -1789,30 +1802,58 @@ local function applyBallTP(dt)
     end
 end
 
+
+----------------------------------------------------
+-- REMOVE BALL TP (FULL RESET)
+----------------------------------------------------
 local function removeBallTP()
     if not character then return end
 
     for _, hand in ipairs(getBallTPHands(character)) do
-        local original = ballTP_OriginalSize[hand]
 
-        if original then
-            hand.Size = original
+        -- restore original size
+        if ballTP_OriginalSize[hand] then
+            hand.Size = ballTP_OriginalSize[hand]
         end
 
+        -- delete chest zone
         if hand:FindFirstChild("ChestZone") then
             hand.ChestZone:Destroy()
         end
 
-        hand.Material     = Enum.Material.Plastic
-        hand.Color        = Color3.fromRGB(255,255,255)
-        hand.Transparency = 0
-        hand.CanCollide   = true
-        hand.Massless     = false
-        hand.CanTouch     = true
+        -- reset visuals
+        hand.Material                 = Enum.Material.Plastic
+        hand.Color                    = Color3.fromRGB(255,255,255)
+        hand.Transparency             = 0
+        hand.LocalTransparencyModifier = 0
+        hand.CanCollide               = true
+        hand.Massless                 = false
+        hand.CanTouch                 = true
     end
 
     ballTP_OriginalSize = {}
 end
+
+
+----------------------------------------------------
+-- ⭐ THE REAL FIX: HEARTBEAT ONLY RUNS WHEN ON
+----------------------------------------------------
+RunService.Heartbeat:Connect(function(dt)
+    if masterStates[12] and featureStates[12] then
+        applyBallTP(dt)
+    end
+end)
+
+
+----------------------------------------------------
+-- ⭐ REQUIRED: CALL THIS WHEN TURNING OFF
+----------------------------------------------------
+_G.DisableBallTP = function()
+    featureStates[12] = false
+    masterStates[12]  = false
+    removeBallTP()
+end
+
 
 
     ----------------------------------------------------
