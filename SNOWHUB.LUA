@@ -1328,8 +1328,8 @@ end
         local maxDist = getJPVDistance() * 10
         if distance > maxDist then return end
 
-        local smooth = math.clamp(getJumpSmooth(), 0.02, 0.1)
-        local strength = getPullStrength() * 0.1
+        local smooth = math.clamp(getJumpSmooth(), 0.02, 0.2)
+        local strength = getPullStrength() * 0.2
 
         local targetPos = ball.Position + Vector3.new(0, 2.5, 0)
 
