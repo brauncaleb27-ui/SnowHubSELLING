@@ -1714,9 +1714,8 @@ end
             JA_Remaining = math.max(0, JA_Remaining - dt)
         end
     end)
-
 ----------------------------------------------------
--- BALL TP SYSTEM (FINAL FIXED VERSION)
+-- BALL TP SYSTEM (FINAL WORKING VERSION)
 ----------------------------------------------------
 
 local RunService = game:GetService("RunService")
@@ -1848,13 +1847,11 @@ end)
 ----------------------------------------------------
 -- ⭐ REQUIRED: CALL THIS WHEN TURNING OFF
 ----------------------------------------------------
-_G.DisableBallTP = function()
+function DisableBallTP()
     featureStates[12] = false
     masterStates[12]  = false
     removeBallTP()
 end
-
-
 
     ----------------------------------------------------
     -- SAFE HEAD LOCK 
