@@ -214,7 +214,6 @@ local function InitSnowHub()
     InfiniteJump = Enum.KeyCode.Backquote,
     JumpAssist   = Enum.KeyCode.Backquote,
     SmoothJump   = Enum.KeyCode.Backquote,
-    BallTP       = Enum.KeyCode.Backquote,
     ToggleGUI    = Enum.KeyCode.Backquote,
 }
 
@@ -747,7 +746,6 @@ local function InitSnowHub()
     createToggleSwitch(mainPage,"INFINITE JUMP",9)
     createToggleSwitch(mainPage,"JUMP ASSIST",10)
     createToggleSwitch(mainPage,"SMOOTH JUMP",11)
-    createToggleSwitch(mainPage,"BALL TP",12)
 
     ----------------------------------------------------
     -- GLOBAL SEARCH BAR (MAIN TAB)
@@ -1114,7 +1112,6 @@ local function InitSnowHub()
     makeBindRow("Infinite Jump","InfiniteJump")
     makeBindRow("Jump Assist","JumpAssist")
     makeBindRow("Smooth Jump","SmoothJump")
-    makeBindRow("Ball TP","BallTP")
     makeBindRow("Toggle GUI","ToggleGUI")
 
     ----------------------------------------------------
@@ -1714,144 +1711,6 @@ end
             JA_Remaining = math.max(0, JA_Remaining - dt)
         end
     end)
-----------------------------------------------------
--- BALL TP SYSTEM (FINAL WORKING VERSION)
-----------------------------------------------------
-
-local RunService = game:GetService("RunService")
-
--- storage for original hand sizes
-local ballTP_OriginalSize = {}
-
-----------------------------------------------------
--- HAND DETECTION (R6 + R15)
-----------------------------------------------------
-local function getBallTPHands(char)
-    local hands = {}
-    for _, v in ipairs(char:GetDescendants()) do
-        if v:IsA("BasePart") then
-            local n = v.Name:lower()
-            if n == "lefthand" or n == "righthand" or n == "left arm" or n == "right arm" then
-                table.insert(hands, v)
-            end
-        end
-    end
-    return hands
-end
-
-
-----------------------------------------------------
--- APPLY BALL TP (ONLY RUNS WHEN ON)
-----------------------------------------------------
-local function applyBallTP(dt)
-    if not character then return end
-
-    -- ⭐ HARD STOP — DO NOT RUN IF OFF
-    if masterStates[12] ~= true then return end
-    if featureStates[12] ~= true then return end
-
-    local size = getBallTPSize()
-    local trans = getBallTPTransparency()
-
-    for _, hand in ipairs(getBallTPHands(character)) do
-
-        -- store original size once
-        if not ballTP_OriginalSize[hand] then
-            ballTP_OriginalSize[hand] = hand.Size
-        end
-
-        ----------------------------------------------------
-        -- MENU SAFE TRANSPARENCY
-        ----------------------------------------------------
-        local finalTrans = menuOpen and 1 or math.clamp(trans + 0.1, 0, 1)
-        hand.Transparency = finalTrans
-        hand.LocalTransparencyModifier = finalTrans
-
-        ----------------------------------------------------
-        -- HAND HITBOX
-        ----------------------------------------------------
-        hand.Size       = Vector3.new(size * 1.45, size * 1.15, size * 1.45)
-        hand.Material   = Enum.Material.SmoothPlastic
-        hand.Color      = Color3.fromRGB(200, 50, 50)
-        hand.CanCollide = false
-        hand.Massless   = false
-        hand.CanTouch   = true
-
-        ----------------------------------------------------
-        -- CHEST ZONE (ONLY CREATED WHEN ON)
-        ----------------------------------------------------
-        if not hand:FindFirstChild("ChestZone") then
-            local chest = Instance.new("Part")
-            chest.Name = "ChestZone"
-            chest.Size = Vector3.new(size * 2.8, size * 2.0, size * 2.2)
-            chest.Transparency = 1
-            chest.CanCollide = false
-            chest.CanTouch = true
-            chest.Massless = true
-            chest.Anchored = false
-            chest.Parent = hand
-
-            chest.CFrame = hand.CFrame * CFrame.new(0, 0, -(size * 1.4))
-
-            local weld = Instance.new("WeldConstraint")
-            weld.Part0 = hand
-            weld.Part1 = chest
-            weld.Parent = chest
-        end
-    end
-end
-
-
-----------------------------------------------------
--- REMOVE BALL TP (FULL RESET)
-----------------------------------------------------
-local function removeBallTP()
-    if not character then return end
-
-    for _, hand in ipairs(getBallTPHands(character)) do
-
-        -- restore original size
-        if ballTP_OriginalSize[hand] then
-            hand.Size = ballTP_OriginalSize[hand]
-        end
-
-        -- delete chest zone
-        if hand:FindFirstChild("ChestZone") then
-            hand.ChestZone:Destroy()
-        end
-
-        -- reset visuals
-        hand.Material                 = Enum.Material.Plastic
-        hand.Color                    = Color3.fromRGB(255,255,255)
-        hand.Transparency             = 0
-        hand.LocalTransparencyModifier = 0
-        hand.CanCollide               = true
-        hand.Massless                 = false
-        hand.CanTouch                 = true
-    end
-
-    ballTP_OriginalSize = {}
-end
-
-
-----------------------------------------------------
--- ⭐ THE REAL FIX: HEARTBEAT ONLY RUNS WHEN ON
-----------------------------------------------------
-RunService.Heartbeat:Connect(function(dt)
-    if masterStates[12] and featureStates[12] then
-        applyBallTP(dt)
-    end
-end)
-
-
-----------------------------------------------------
--- ⭐ REQUIRED: CALL THIS WHEN TURNING OFF
-----------------------------------------------------
-function DisableBallTP()
-    featureStates[12] = false
-    masterStates[12]  = false
-    removeBallTP()
-end
 
     ----------------------------------------------------
     -- SAFE HEAD LOCK 
@@ -2288,7 +2147,6 @@ end
         checkFeature("InfiniteJump",9)
         checkFeature("JumpAssist",10)
         checkFeature("SmoothJump",11)
-        checkFeature("BallTP",12)
         checkFeature("ToggleGUI",nil)
     end)
 
@@ -2302,7 +2160,6 @@ end
         applySideTech()
         applyJumpVector(dt)
         applySmoothJump(dt)
-        applyBallTP(dt)
     end)
 end
 
