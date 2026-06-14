@@ -202,20 +202,24 @@ local function InitSnowHub()
     local ballTP_Transparency = 0.5
     local ballTP_OriginalSize = {}
 
+    local ballManip_Enabled   = false
+
     local Keybinds = {
-    WalkSpeed    = Enum.KeyCode.Backquote,
-    HipHeight    = Enum.KeyCode.Backquote,
-    Gravity      = Enum.KeyCode.Backquote,
-    JumpVector   = Enum.KeyCode.Backquote,
-    Hitbox       = Enum.KeyCode.Backquote,
-    SideTech     = Enum.KeyCode.Backquote,
-    HeadLock     = Enum.KeyCode.Backquote,
-    HeadBoost    = Enum.KeyCode.Backquote,
-    InfiniteJump = Enum.KeyCode.Backquote,
-    JumpAssist   = Enum.KeyCode.Backquote,
-    SmoothJump   = Enum.KeyCode.Backquote,
-    ToggleGUI    = Enum.KeyCode.Backquote,
-}
+        WalkSpeed    = Enum.KeyCode.Backquote,
+        HipHeight    = Enum.KeyCode.Backquote,
+        Gravity      = Enum.KeyCode.Backquote,
+        JumpVector   = Enum.KeyCode.Backquote,
+        Hitbox       = Enum.KeyCode.Backquote,
+        SideTech     = Enum.KeyCode.Backquote,
+        HeadLock     = Enum.KeyCode.Backquote,
+        HeadBoost    = Enum.KeyCode.Backquote,
+        InfiniteJump = Enum.KeyCode.Backquote,
+        JumpAssist   = Enum.KeyCode.Backquote,
+        SmoothJump   = Enum.KeyCode.Backquote,
+        BallTP       = Enum.KeyCode.Backquote,
+        BallManip    = Enum.KeyCode.Backquote,
+        ToggleGUI    = Enum.KeyCode.Backquote,
+    }
 
     ----------------------------------------------------
     -- BALL / FOOTBALL DETECTION
@@ -568,17 +572,17 @@ local function InitSnowHub()
     end)
 
     local toggleStates = {}
-    for i = 1, 11 do
+    for i = 1, 13 do
         toggleStates[i] = false
     end
 
     local masterStates = {}
-    for i = 1, 11 do
+    for i = 1, 13 do
         masterStates[i] = false
     end
 
     local featureStates = {}
-    for i = 1, 11 do
+    for i = 1, 13 do
         featureStates[i] = false
     end
 
@@ -723,6 +727,15 @@ local function InitSnowHub()
                 Workspace.Gravity = defaultGravity
             elseif index == 5 then
                 hitboxEnabled = false
+            elseif index == 12 then
+                ballTP_Enabled = false
+                removeBallTP()
+            elseif index == 13 then
+                ballManip_Enabled = false
+                local ball = getFootball()
+                if ball then
+                    ball.AssemblyLinearVelocity = Vector3.zero
+                end
             end
             update()
             updateSystemStatus()
@@ -746,6 +759,8 @@ local function InitSnowHub()
     createToggleSwitch(mainPage,"INFINITE JUMP",9)
     createToggleSwitch(mainPage,"JUMP ASSIST",10)
     createToggleSwitch(mainPage,"SMOOTH JUMP",11)
+    createToggleSwitch(mainPage,"BALL TP",12)
+    createToggleSwitch(mainPage,"BALL MANIPULATION",13)
 
     ----------------------------------------------------
     -- GLOBAL SEARCH BAR (MAIN TAB)
@@ -1010,7 +1025,7 @@ local function InitSnowHub()
     local getHipHeight, setHipHeight = createSlider(advPage,"HIP HEIGHT",1,5,originalHipHeight,advY); advY += 60
     local getGravity, setGravity = createSlider(advPage,"GRAVITY",170,200,defaultGravity,advY); advY += 60
 
-    local getJumpSmooth, setJumpSmooth = createSlider(advPage,"JUMP VECTOR SMOOTH",0.1,1,0.1,advY); advY += 60
+    local getJumpSmooth, setJumpSmooth = createSlider(advPage,"JUMP VECTOR SMOOTH",0.1,0.5,0.1,advY); advY += 60
     local getJPVDistance, setJPVDistance = createSlider(advPage,"JUMP VECTOR DISTANCE",1,10,2,advY); advY += 60
 
     local getHitboxSize, setHitboxSize = createSlider(advPage,"HITBOX SIZE",1,5,2,advY); advY += 60
@@ -1027,10 +1042,12 @@ local function InitSnowHub()
     local getSJC_JumpAdjuster, setSJC_JumpAdjuster = createSlider(advPage,"JUMP ADJUSTER (VERTICAL)",50,60,50,advY); advY += 60
     local getSJC_JumpVelocity, setSJC_JumpVelocity = createSlider(advPage,"JUMP VELOCITY (HORIZONTAL)",10,45,10,advY); advY += 60
     local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,200,130,advY); advY += 60
-    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3.5,1.5,advY); advY += 60
+    local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3,1.5,advY); advY += 60
 
     local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,12,1,advY); advY += 60
     local getBallTPTransparency, setBallTPTransparency = createSlider(advPage,"BALL TP TRANSPARENCY",0.1,1,0.5,advY); advY += 60
+
+    local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,4.5,1,advY); advY += 60
 
     ----------------------------------------------------
     -- KEYBINDS PAGE 
@@ -1112,6 +1129,8 @@ local function InitSnowHub()
     makeBindRow("Infinite Jump","InfiniteJump")
     makeBindRow("Jump Assist","JumpAssist")
     makeBindRow("Smooth Jump","SmoothJump")
+    makeBindRow("Ball TP","BallTP")
+    makeBindRow("Ball Manip","BallManip")
     makeBindRow("Toggle GUI","ToggleGUI")
 
     ----------------------------------------------------
@@ -1247,52 +1266,52 @@ local function InitSnowHub()
         end
     end)
 
-----------------------------------------------------
--- HITBOX
-----------------------------------------------------
-local function createHitbox(char)
-    if not hitboxEnabled then return end
-    if char == character then return end
+    ----------------------------------------------------
+    -- HITBOX
+    ----------------------------------------------------
+    local function createHitbox(char)
+        if not hitboxEnabled then return end
+        if char == character then return end
 
-    local head = char:FindFirstChild("Head")
-    if not head then return end
+        local head = char:FindFirstChild("Head")
+        if not head then return end
 
-    if hitboxes[char] then
-        hitboxes[char]:Destroy()
+        if hitboxes[char] then
+            hitboxes[char]:Destroy()
+        end
+
+        local box = Instance.new("Part")
+        box.Name = "HeadHitbox"
+        box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
+        box.Transparency = 1
+        box.CanCollide = true
+        box.Anchored = false
+        box.Massless = true
+        box.Parent = char
+
+        local weld = Instance.new("WeldConstraint")
+        weld.Part0 = head
+        weld.Part1 = box
+        weld.Parent = box
+
+        box.Position = head.Position
+        hitboxes[char] = box
     end
 
-    local box = Instance.new("Part")
-    box.Name = "HeadHitbox"
-    box.Size = Vector3.new(hitboxSize, hitboxSize, hitboxSize)
-    box.Transparency = 1
-    box.CanCollide = true
-    box.Anchored = false
-    box.Massless = true
-    box.Parent = char
+    local function refreshHitboxes()
+        for _, v in pairs(hitboxes) do
+            if v then v:Destroy() end
+        end
+        hitboxes = {}
 
-    local weld = Instance.new("WeldConstraint")
-    weld.Part0 = head
-    weld.Part1 = box
-    weld.Parent = box
-
-    box.Position = head.Position
-    hitboxes[char] = box
-end
-
-local function refreshHitboxes()
-    for _, v in pairs(hitboxes) do
-        if v then v:Destroy() end
-    end
-    hitboxes = {}
-
-    if hitboxEnabled then
-        for _, plr in pairs(Players:GetPlayers()) do
-            if plr ~= player and plr.Character then
-                createHitbox(plr.Character)
+        if hitboxEnabled then
+            for _, plr in pairs(Players:GetPlayers()) do
+                if plr ~= player and plr.Character then
+                    createHitbox(plr.Character)
+                end
             end
         end
     end
-end
 
     ----------------------------------------------------
     -- JUMP VECTOR 
@@ -1300,7 +1319,7 @@ end
 
     local pullActive = false
     local pullStart = 0
-    local pullDuration = 0.45
+    local pullDuration = 0.50
 
     humanoid.Jumping:Connect(function()
         if masterStates[4] and featureStates[4] then
@@ -1325,8 +1344,8 @@ end
         local maxDist = getJPVDistance() * 10
         if distance > maxDist then return end
 
-        local smooth = math.clamp(getJumpSmooth(), 0.02, 0.2)
-        local strength = getPullStrength() * 0.2
+        local smooth = math.clamp(getJumpSmooth(), 0.2, 0.1)
+        local strength = getPullStrength() * 0.1
 
         local targetPos = ball.Position + Vector3.new(0, 2.5, 0)
 
@@ -1718,7 +1737,7 @@ end
         end
     end
 
-    ----------------------------------------------------
+ ----------------------------------------------------
     -- CLOTHING SYSTEM
     ----------------------------------------------------
 
@@ -1824,57 +1843,77 @@ end
         end)
     end
 
-    ----------------------------------------------------
-    -- EMOTE SYSTEM
-    ----------------------------------------------------
+----------------------------------------------------
+-- EMOTE SYSTEM 
+----------------------------------------------------
 
-    local CurrentTrack = nil
+local CurrentTrack = nil
 
-    local function LoadTrack(id, speed, looped)
+local function LoadTrack(id, speed, looped)
+    pcall(function()
+        if CurrentTrack then
+            CurrentTrack:Stop(0)
+            CurrentTrack = nil
+        end
+
+        local animId = "rbxassetid://" .. tostring(id)
+
+        -- Try to resolve animation container
         pcall(function()
-            if CurrentTrack then CurrentTrack:Stop(0) end
-            local animId = "rbxassetid://" .. tostring(id)
-            pcall(function()
-                local result = game:GetObjects("rbxassetid://" .. tostring(id))
-                if result and #result > 0 then
-                    local anim = result[1]
-                    if anim:IsA("Animation") and anim.AnimationId ~= "" then animId = anim.AnimationId end
+            local result = game:GetObjects("rbxassetid://" .. tostring(id))
+            if result and #result > 0 then
+                local anim = result[1]
+                if anim:IsA("Animation") and anim.AnimationId ~= "" then
+                    animId = anim.AnimationId
                 end
-            end)
-            local newAnim = Instance.new("Animation")
-            newAnim.AnimationId = animId
-            local ok, newTrack = pcall(function() return humanoid:LoadAnimation(newAnim) end)
-            if not ok or not newTrack then return end
-            newTrack.Priority = Enum.AnimationPriority.Action4
-            newTrack:Play(0.1, 1, speed or 1)
-            newTrack.Looped = (looped ~= false)
-            CurrentTrack = newTrack
+            end
         end)
-    end
 
-    local EMOTES = {
-        { title = "BBS",         id = 83690407262789,  speed = 1.35 },
-        { title = "Bop",         id = 8028669437,       speed = 1.1  },
-        { title = "Hackers",     id = 10714364213,      speed = 1    },
-        { title = "HD",          id = 133666867152446,  speed = 1    },
-        { title = "Keep It Hot", id = 98979972129763,   speed = 1    },
-        { title = "CCL",         id = 92859581691366,   speed = 1    },
-        { title = "TTL",         id = 2293391158,       speed = 1    },
-        { title = "Sam Slash",   id = 15249657798,      speed = 1    },
-        { title = "Sturdy",      id = 14215791622,      speed = 1    },
-        { title = "Griddy",      id = 8028694339,       speed = 1    },
-        { title = "Ball Spin",   id = 14215798544,      speed = 1    },
-        { title = "Mop",         id = 14215807283,      speed = 1    },
-        { title = "Headspin",    id = 14920821886,      speed = 1    },
-        { title = "Druski",      id = 14901504235,      speed = 1    },
-        { title = "Smith Knicks", id = 15312473847,      speed = 1    },
-        { title = "Moon",        id = 14216002323,      speed = 1    },
-        { title = "Thug Shake",  id = 13550466835,      speed = 1    },
-        { title = "Hacky Sack",  id = 14220954146,      speed = 1    },
-        { title = "Gronk Spike", id = 13782932458,      speed = 1    },
-        { title = "Dimension",   id = 5618747341,       speed = 1    },
-        { title = "Goodnight",   id = 15375772247,      speed = 1    },
-    }
+        local newAnim = Instance.new("Animation")
+        newAnim.AnimationId = animId
+
+        local ok, newTrack = pcall(function()
+            return humanoid:LoadAnimation(newAnim)
+        end)
+
+        if not ok or not newTrack then return end
+
+        newTrack.Priority = Enum.AnimationPriority.Action4
+        newTrack.Looped = (looped ~= false)
+        newTrack:Play(0.1, 1, speed or 1)
+
+        CurrentTrack = newTrack
+    end)
+end
+
+local EMOTES = {
+    { title = "BBS",         id = 83690407262789,  speed = 1.35 },
+    { title = "Bop",         id = 8028669437,       speed = 1.1  },
+    { title = "Hackers",     id = 10714364213,      speed = 1    },
+    { title = "HD",          id = 133666867152446,  speed = 1    },
+    { title = "Keep It Hot", id = 98979972129763,   speed = 1    },
+    { title = "CCL",         id = 92859581691366,   speed = 1    },
+    { title = "TTL",         id = 2293391158,       speed = 1    },
+    { title = "Sam Slash",   id = 15249657798,      speed = 1    },
+    { title = "Sturdy",      id = 14215791622,      speed = 1    },
+    { title = "Griddy",      id = 8028694339,       speed = 1    },
+    { title = "Ball Spin",   id = 14215798544,      speed = 1    },
+    { title = "Mop",         id = 14215807283,      speed = 1    },
+    { title = "Headspin",    id = 14920821886,      speed = 1    },
+    { title = "Druski",      id = 14901504235,      speed = 1    },
+    { title = "Smith Knicks", id = 15312473847,     speed = 1    },
+    { title = "Moon",        id = 14216002323,      speed = 1    },
+    { title = "Thug Shake",  id = 13550466835,      speed = 1    },
+    { title = "Hacky Sack",  id = 14220954146,      speed = 1    },
+    { title = "Gronk Spike", id = 13782932458,      speed = 1    },
+    { title = "Dimension",   id = 5618747341,       speed = 1    },
+    { title = "Goodnight",   id = 15375772247,      speed = 1    },
+    { title = "Hoppin Dip",  id = 122783619821842,  speed = 1 },
+    { title = "Blue Sturdy", id = 98407461663639,   speed = 1 },
+    { title = "All Might",   id = 100416618991324,  speed = 1 },
+    { title = "Low Cortisol",id = 97601844378452,   speed = 1 },
+}
+
 
     ----------------------------------------------------
     -- ITEMS TAB UI
@@ -2123,6 +2162,9 @@ end
                             refreshHitboxes()
                         end
 
+                        -- BallTP and BallManip no longer auto-change states here;
+                        -- they just follow masterStates + featureStates like other features.
+
                         if toggleUpdateCallbacks[index] then
                             toggleUpdateCallbacks[index]()
                         end
@@ -2143,12 +2185,145 @@ end
         checkFeature("InfiniteJump",9)
         checkFeature("JumpAssist",10)
         checkFeature("SmoothJump",11)
+        checkFeature("BallTP",12)
+        checkFeature("BallManip",13)
         checkFeature("ToggleGUI",nil)
     end)
 
-----------------------------------------------------
--- MAIN LOOP
-----------------------------------------------------
+    ----------------------------------------------------
+    -- FIXED BALL TP SYSTEM 
+    ----------------------------------------------------
+
+    local function getBallTPHands(char)
+        local hands = {}
+        for _, v in ipairs(char:GetDescendants()) do
+            if v:IsA("BasePart") then
+                local n = v.Name:lower()
+                if n == "lefthand" or n == "righthand" or n == "left arm" or n == "right arm" then
+                    table.insert(hands, v)
+                end
+            end
+        end
+        return hands
+    end
+
+    local function removeBallTP()
+        if not character then return end
+
+        for _, hand in ipairs(getBallTPHands(character)) do
+            local original = ballTP_OriginalSize[hand]
+
+            if original then
+                hand.Size = original
+            end
+
+            if hand:FindFirstChild("ChestZone") then
+                hand.ChestZone:Destroy()
+            end
+
+            hand.Material     = Enum.Material.Plastic
+            hand.Color        = Color3.fromRGB(255,255,255)
+            hand.Transparency = 0
+            hand.CanCollide   = true
+            hand.Massless     = false
+            hand.CanTouch     = true
+        end
+
+        ballTP_OriginalSize = {}
+    end
+
+    local function applyBallTP()
+        if not (masterStates[12] and featureStates[12]) then
+            removeBallTP()
+            return
+        end
+
+        local size = getBallTPSize()
+        local trans = getBallTPTransparency()
+
+        for _, hand in ipairs(getBallTPHands(character)) do
+
+            if not ballTP_OriginalSize[hand] then
+                ballTP_OriginalSize[hand] = hand.Size
+            end
+
+            local wasAnchored = hand.Anchored
+            hand.Anchored = true
+
+            hand.Size         = Vector3.new(size * 1.45, size * 1.15, size * 1.45)
+            hand.Material     = Enum.Material.SmoothPlastic
+            hand.Color        = Color3.fromRGB(200, 50, 50)
+            hand.Transparency = math.clamp(trans, 0, 1)
+            hand.CanCollide   = false
+            hand.Massless     = true
+            hand.CanTouch     = true
+
+            if not hand:FindFirstChild("ChestZone") then
+                local chest = Instance.new("Part")
+                chest.Name = "ChestZone"
+                chest.Size = Vector3.new(size * 2.8, size * 2.0, size * 2.2)
+                chest.Transparency = 1
+                chest.CanCollide = false
+                chest.CanTouch = true
+                chest.Massless = true
+                chest.Anchored = false
+                chest.Parent = hand
+
+                local weld = Instance.new("WeldConstraint")
+                weld.Part0 = hand
+                weld.Part1 = chest
+                weld.Parent = chest
+
+                chest.CFrame = hand.CFrame * CFrame.new(0, 0, -(size * 1.4))
+            end
+
+            hand.ChestZone.Transparency = 1
+
+            hand.Anchored = wasAnchored
+        end
+    end
+
+    ----------------------------------------------------
+    -- FIXED BALL MANIP LOGIC
+    ----------------------------------------------------
+    local function applyBallManip()
+        if not (masterStates[13] and featureStates[13]) then
+            return
+        end
+
+        if not character or not root then return end
+
+        local ball = getFootball()
+        if not ball or not ball:IsA("BasePart") then return end
+
+        local target = character:FindFirstChild("RightHand") or root
+        if not target then return end
+
+        local distance = (ball.Position - target.Position).Magnitude
+        local speedMult = getBallManipSpeed()
+
+        if distance <= 5 then
+            ball.AssemblyLinearVelocity = Vector3.zero
+
+            local hum = character:FindFirstChildWhichIsA("Humanoid")
+            if hum then
+                hum:ChangeState(Enum.HumanoidStateType.Running)
+            end
+
+            -- NO auto-off here; Ball Manip stays ON until you toggle it off.
+            return
+        end
+
+        local direction = (target.Position - ball.Position)
+        if direction.Magnitude == 0 then return end
+        direction = direction.Unit
+
+        ball.AssemblyLinearVelocity = direction * (450 * speedMult)
+    end
+
+    ----------------------------------------------------
+    -- MAIN LOOP
+    ----------------------------------------------------
     RunService.Heartbeat:Connect(function(dt)
         applyWalkSpeed()
         applyHipHeight()
@@ -2156,6 +2331,8 @@ end
         applySideTech()
         applyJumpVector(dt)
         applySmoothJump(dt)
+        applyBallTP()
+        applyBallManip()
     end)
 end
 
