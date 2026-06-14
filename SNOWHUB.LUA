@@ -1047,7 +1047,7 @@ local function InitSnowHub()
     local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,12,1,advY); advY += 60
     local getBallTPTransparency, setBallTPTransparency = createSlider(advPage,"BALL TP TRANSPARENCY",0.1,1,0.5,advY); advY += 60
 
-    local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,4.5,1,advY); advY += 60
+    local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,10,1,advY); advY += 60
 
     ----------------------------------------------------
     -- KEYBINDS PAGE 
@@ -1344,8 +1344,8 @@ local function InitSnowHub()
         local maxDist = getJPVDistance() * 10
         if distance > maxDist then return end
 
-        local smooth = math.clamp(getJumpSmooth(), 0.2, 0.1)
-        local strength = getPullStrength() * 0.1
+        local smooth = math.clamp(getJumpSmooth(), 0.2, 0.2)
+        local strength = getPullStrength() * 0.2
 
         local targetPos = ball.Position + Vector3.new(0, 2.5, 0)
 
@@ -1737,7 +1737,7 @@ local function InitSnowHub()
         end
     end
 
- ----------------------------------------------------
+    ----------------------------------------------------
     -- CLOTHING SYSTEM
     ----------------------------------------------------
 
@@ -2191,7 +2191,7 @@ local EMOTES = {
     end)
 
     ----------------------------------------------------
-    -- FIXED BALL TP SYSTEM 
+    --BALL TP SYSTEM 
     ----------------------------------------------------
 
     local function getBallTPHands(char)
@@ -2284,7 +2284,7 @@ local EMOTES = {
     end
 
     ----------------------------------------------------
-    -- FIXED BALL MANIP LOGIC
+    -- BALL MANIP LOGIC
     ----------------------------------------------------
     local function applyBallManip()
         if not (masterStates[13] and featureStates[13]) then
@@ -2302,23 +2302,16 @@ local EMOTES = {
         local distance = (ball.Position - target.Position).Magnitude
         local speedMult = getBallManipSpeed()
 
-        if distance <= 5 then
-            ball.AssemblyLinearVelocity = Vector3.zero
-
-            local hum = character:FindFirstChildWhichIsA("Humanoid")
-            if hum then
-                hum:ChangeState(Enum.HumanoidStateType.Running)
-            end
-
-            -- NO auto-off here; Ball Manip stays ON until you toggle it off.
-            return
-        end
-
         local direction = (target.Position - ball.Position)
         if direction.Magnitude == 0 then return end
         direction = direction.Unit
 
-        ball.AssemblyLinearVelocity = direction * (450 * speedMult)
+        ball.AssemblyLinearVelocity = direction * (550 * speedMult)
+
+        if distance <= 6 then
+            ball.Position = target.Position
+            ball.AssemblyLinearVelocity = Vector3.zero
+        end
     end
 
     ----------------------------------------------------
