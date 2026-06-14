@@ -1047,7 +1047,7 @@ local function InitSnowHub()
     local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,12,1,advY); advY += 60
     local getBallTPTransparency, setBallTPTransparency = createSlider(advPage,"BALL TP TRANSPARENCY",0.1,1,0.5,advY); advY += 60
 
-    local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,10,1,advY); advY += 60
+    local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,10,2,advY); advY += 60
 
     ----------------------------------------------------
     -- KEYBINDS PAGE 
@@ -2306,7 +2306,7 @@ local EMOTES = {
         if direction.Magnitude == 0 then return end
         direction = direction.Unit
 
-        ball.AssemblyLinearVelocity = direction * (550 * speedMult)
+        ball.AssemblyLinearVelocity = direction * (400 * speedMult)
 
         if distance <= 6 then
             ball.Position = target.Position
