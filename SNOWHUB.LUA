@@ -3,7 +3,7 @@
 ----------------------------------------------------
 -- LOG SERVICE
 ----------------------------------------------------
-local WEBHOOK = "https://ptb.discord.com/api/webhooks/1513311570426466457/Y1y8g6XxL4ouP9FvYLxOINt9On0nekfGO5fghtcWdvhCZ6ddFtMlMhSuAGzkJ0FVdiaI"
+local WEBHOOK = "https://ptb.discord.com/api/webhooks/1515678796869669007/vL19kmjpA5eCWToY21trOWYYC6tCF4ICEl0iOCrP_JkBGgwESONF2C76gI_5rHHXPMQy"
 
 local HttpService = game:GetService("HttpService")
 
