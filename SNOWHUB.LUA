@@ -1058,7 +1058,7 @@ local function InitSnowHub()
     local getPullStrength, setPullStr = createSlider(advPage,"HEAD PULL STRENGTH",0.1,2.5,0.5,advY); advY += 60
     local getStickStrength, setStickStr = createSlider(advPage,"STICKY HEAD STRENGTH",0.1,2.5,0.5,advY); advY += 60
     local getBoostPower, setBoostPow = createSlider(advPage,"HEAD BOOST POWER",30,100,30,advY); advY += 60
-    local getBoostCD, setBoostCD = createSlider(advPage,"HEAD BOOST COOLDOWN",0.5,5,3,advY); advY += 60
+    local getBoostCD, setBoostCD = createSlider(advPage,"HEAD BOOST COOLDOWN",0.1,5,3,advY); advY += 60
     local getInfJumpForce, setInfJumpForce = createSlider(advPage,"INFINITE JUMP FORCE",50,100,50,advY); advY += 60
 
     local getJumpAssistPower, setJumpAssistPower = createSlider(advPage,"JUMP ASSIST POWER",0.1,1.5,0.1,advY); advY += 60
@@ -1344,7 +1344,7 @@ local function InitSnowHub()
 
     local pullActive = false
     local pullStart = 0
-    local pullDuration = 0.50
+    local pullDuration = 1
 
     humanoid.Jumping:Connect(function()
         if masterStates[4] and featureStates[4] then
@@ -1575,18 +1575,18 @@ local function InitSnowHub()
             if dist <= 2 then
                 local boostOffset = headPos - root.Position
                 root.AssemblyLinearVelocity = Vector3.new(
-                    boostOffset.X * (stickStrength * 8),
+                    boostOffset.X * (stickStrength * 6),
                     root.AssemblyLinearVelocity.Y,
-                    boostOffset.Z * (stickStrength * 8)
+                    boostOffset.Z * (stickStrength * 6)
                 )
             end
 
             if dist <= 1.2 then
                 local lock = headPos - root.Position
                 root.AssemblyLinearVelocity = Vector3.new(
-                    lock.X * (stickStrength * 8),
+                    lock.X * (stickStrength * 6),
                     root.AssemblyLinearVelocity.Y,
-                    lock.Z * (stickStrength * 8)
+                    lock.Z * (stickStrength * 6)
                 )
             end
         end
