@@ -39,9 +39,8 @@ local function getHWID()
 end
 
 local WHITELIST = {
-    -- YOUR WORKING ENTRY (DO NOT TOUCH)
     ["1345621147223461890"] = {
-        UserId = 10959304898,
+        UserId = 10978352876,
         HWID = "CB6C8ACF-43AB-4BF7-ADC2-4EBC20CF6B15"
     },
 
