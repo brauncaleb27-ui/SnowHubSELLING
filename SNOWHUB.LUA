@@ -1055,8 +1055,8 @@ local function InitSnowHub()
 
     local getHitboxSize, setHitboxSize = createSlider(advPage,"HITBOX SIZE",1,5,2,advY); advY += 60
     local getSideTurn, setSideTurn = createSlider(advPage,"SIDE TECH TURN SPEED",0.1,1,0.5,advY); advY += 60
-    local getPullStrength, setPullStr = createSlider(advPage,"HEAD PULL STRENGTH",0.1,2.5,0.5,advY); advY += 60
-    local getStickStrength, setStickStr = createSlider(advPage,"STICKY HEAD STRENGTH",0.1,2.5,0.5,advY); advY += 60
+    local getPullStrength, setPullStr = createSlider(advPage,"HEAD PULL STRENGTH",0.5,3.5,0.5,advY); advY += 60
+    local getStickStrength, setStickStr = createSlider(advPage,"STICKY HEAD STRENGTH",0.5,3.5,0.5,advY); advY += 60
     local getBoostPower, setBoostPow = createSlider(advPage,"HEAD BOOST POWER",30,100,30,advY); advY += 60
     local getBoostCD, setBoostCD = createSlider(advPage,"HEAD BOOST COOLDOWN",0.1,5,3,advY); advY += 60
     local getInfJumpForce, setInfJumpForce = createSlider(advPage,"INFINITE JUMP FORCE",50,100,50,advY); advY += 60
@@ -1369,8 +1369,8 @@ local function InitSnowHub()
         local maxDist = getJPVDistance() * 10
         if distance > maxDist then return end
 
-        local smooth = math.clamp(getJumpSmooth(), 0.2, 0.2)
-        local strength = getPullStrength() * 0.2
+        local smooth = math.clamp(getJumpSmooth(), 0.1, 0.1)
+        local strength = getPullStrength() * 0.1
 
         local targetPos = ball.Position + Vector3.new(0, 2.5, 0)
 
@@ -1555,12 +1555,12 @@ local function InitSnowHub()
             local vel = root.AssemblyLinearVelocity
 
             if dist > 2.5 then
-                local multiplier = pullStrength * 15
+                local multiplier = pullStrength * 18
                 local desired = offset.Unit * multiplier
                 root.AssemblyLinearVelocity = Vector3.new(
-                    vel.X + (desired.X - vel.X) * 0.35,
+                    vel.X + (desired.X - vel.X) * 0.25,
                     vel.Y,
-                    vel.Z + (desired.Z - vel.Z) * 0.35
+                    vel.Z + (desired.Z - vel.Z) * 0.25
                 )
             end
 
@@ -1568,16 +1568,16 @@ local function InitSnowHub()
                 local centerDir = (headPos - root.Position)
                 local horizontal = Vector3.new(centerDir.X,0,centerDir.Z)
                 if horizontal.Magnitude > 0 then
-                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 7)
+                    root.AssemblyLinearVelocity += horizontal.Unit * (stickStrength * 6)
                 end
             end
 
             if dist <= 2 then
                 local boostOffset = headPos - root.Position
                 root.AssemblyLinearVelocity = Vector3.new(
-                    boostOffset.X * (stickStrength * 6),
+                    boostOffset.X * (stickStrength * 5),
                     root.AssemblyLinearVelocity.Y,
-                    boostOffset.Z * (stickStrength * 6)
+                    boostOffset.Z * (stickStrength * 5)
                 )
             end
 
