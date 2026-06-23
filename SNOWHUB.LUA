@@ -2308,36 +2308,72 @@ local EMOTES = {
         end
     end
 
-    ----------------------------------------------------
-    -- BALL MANIP LOGIC
-    ----------------------------------------------------
-    local function applyBallManip()
-        if not (masterStates[13] and featureStates[13]) then
-            return
-        end
+  
+----------------------------------------------------
+-- BALL MANIPULATION (LOCAL TO SNOW HUB)
+----------------------------------------------------
 
-        if not character or not root then return end
+local function applyBallManip()
+    -- must be toggled ON in GUI + keybind
+    if not (masterStates[13] and featureStates[13]) then return end
+    if not character or not humanoid or not root then return end
 
-        local ball = getFootball()
-        if not ball or not ball:IsA("BasePart") then return end
+    local ball = getFootball()
+    if not ball or not ball.Parent then return end
 
-        local target = character:FindFirstChild("RightHand") or root
-        if not target then return end
+    -- don't fight owners / tools
+    if ball:IsDescendantOf(character) then return end
 
-        local distance = (ball.Position - target.Position).Magnitude
-        local speedMult = getBallManipSpeed()
+    -- basic park position: slightly behind and below player
+    local parkOffset = Vector3.new(0, -0.5, -2.5)
+    local parkPos    = (root.CFrame * CFrame.new(parkOffset)).Position
 
-        local direction = (target.Position - ball.Position)
-        if direction.Magnitude == 0 then return end
-        direction = direction.Unit
+    local ballPos = ball.Position
+    local toPark  = parkPos - ballPos
+    local dist    = toPark.Magnitude
 
-        ball.AssemblyLinearVelocity = direction * (400 * speedMult)
+    -- ignore far balls
+    if dist > 45 then return end
 
-        if distance <= 6 then
-            ball.Position = target.Position
-            ball.AssemblyLinearVelocity = Vector3.zero
-        end
+    local mass    = ball.AssemblyMass
+    local vel     = ball.AssemblyLinearVelocity
+    local dir     = (dist > 0) and toPark.Unit or Vector3.new()
+
+    -- speed slider from ADVANCED tab
+    local speedMul = getBallManipSpeed() or 1
+
+    -- desired approach speed
+    local baseSpeed   = math.clamp(dist * 6 * speedMul, 0, 90 * speedMul)
+    local desiredVel  = dir * baseSpeed
+    local velError    = desiredVel - vel
+
+    -- clamp correction
+    local maxCorr = 120
+    if velError.Magnitude > maxCorr then
+        velError = velError.Unit * maxCorr
     end
+
+    -- main pull
+    ball:ApplyImpulse(velError * mass * 0.12)
+
+    -- simple hover at feet height + small offset
+    local feetY   = root.Position.Y - humanoid.HipHeight
+    local hoverY  = feetY + 0.9
+    local dy      = hoverY - ballPos.Y
+
+    ball:ApplyImpulse(Vector3.new(0, dy * mass * 0.18, 0))
+
+    -- light lateral damping so it doesn't orbit
+    local toward   = vel:Dot(dir) * dir
+    local lateral  = vel - toward
+    ball:ApplyImpulse(-lateral * mass * 0.10)
+
+    -- soft snap when very close
+    if dist < 2.2 then
+        ball.AssemblyLinearVelocity = Vector3.new(0, 0, 0)
+        ball.CFrame = CFrame.new(parkPos, parkPos + root.CFrame.LookVector)
+    end
+end
 
     ----------------------------------------------------
     -- MAIN LOOP
