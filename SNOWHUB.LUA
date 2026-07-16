@@ -1635,7 +1635,7 @@ local function InitSnowHub()
         local velocity = rootPart.AssemblyLinearVelocity
         local fallSpeed = math.max(0, -velocity.Y)
 
-        local bouncePower = (BOOST_POWER * 1.35) + math.clamp(fallSpeed * 0.9, 0, 85)
+        local bouncePower = (BOOST_POWER * 1.35) + math.clamp(fallSpeed * 1.05, 0, 90)
 
         local attachment = Instance.new("Attachment")
         attachment.Parent = rootPart
