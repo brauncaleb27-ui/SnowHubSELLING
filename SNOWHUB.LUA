@@ -1084,7 +1084,7 @@ local function InitSnowHub()
     local getSJC_FallVelocity, setSJC_FallVelocity = createSlider(advPage,"FALL VELOCITY",120,200,130,advY); advY += 60
     local getSJC_Smoothing, setSJC_Smoothing = createSlider(advPage,"SMOOTHING",1.5,3,1.5,advY); advY += 60
 
-    local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,12,1,advY); advY += 60
+    local getBallTPSize, setBallTPSize = createSlider(advPage,"BALL TP SIZE",1,50,1,advY); advY += 60
     local getBallTPTransparency, setBallTPTransparency = createSlider(advPage,"BALL TP TRANSPARENCY",0.1,1,0.5,advY); advY += 60
 
     local getBallManipSpeed, setBallManipSpeed = createSlider(advPage,"BALL MANIP SPEED",1,99,2,advY); advY += 60
